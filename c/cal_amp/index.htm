@@ -7,6 +7,13 @@ body {
 	background-color: #ffffff;
 	color: #000000;
 	font-family: arial, sans-serif;
+	text-align: center;
+}
+
+#main {
+	width: 740px;
+	margin: 0 auto;
+	text-align: left;
 }
 
 tr.heading {
@@ -19,23 +26,43 @@ tr.entry {
 
 .block {
 	background-color: #eeeeee;
-	padding: 10px;
+	padding: 1em;
+	margin-bottom: 2em;
+}
+
+.block h2 {
+	margin-top: 0;
+}
+
+.tblock {
+	padding: 1em;
+}
+
+.tblock h1 {
+	margin-top: 0;
 }
 
 </style>
 </head>
 <body>
 
-<h1>Cal Amp</h1>
+<div id="main">
 
-<p>Created in late 2002, Cal Amp is a WinAmp 2 plugin which feeds tracks you're currently listening to, into a database, over the web.</p>
+<div class="tblock">
 
-<p>By collecting this data over time, interesting patterns can emerge. This software was written around the same time as Audio Scrobbler, the statistical engine which now powers <a href="http://last.fm">last.fm</a>. It was created independantly. It seems like the world was ready for something like this :)</p>
+	<h1>Cal Amp</h1>
 
-<p>A screen-shot of the web site in action can be <a href="screen.png">seen here</a>.</p>
+	<p>Created in late 2002, Cal Amp is a WinAmp 2 plugin which feeds tracks you're currently listening to, into a database, over the web.</p>
+
+	<p>By collecting this data over time, interesting patterns can emerge. This software was written around the same time as Audio Scrobbler, the statistical engine which now powers <a href="http://last.fm">last.fm</a>. It was created independantly. It seems like the world was ready for something like this :)</p>
+
+	<p>A screen-shot of the web site in action can be <a href="screen.png">seen here</a>.</p>
+
+	<p>I've been using Last.fm since April 2004, when I switched to iTunes. My profile is <a href="http://www.last.fm/user/iamcal">here</a>.</p>
+</div>
 
 <div class="block">
-	<h1>Download</h1>
+	<h2>Download</h2>
 
 	The entire source for Cal Amp can be found in my public SVN Repository, here:<br />
 	<a href="https://svn.iamcal.com/public/code/cal_amp/trunk/">https://svn.iamcal.com/public/code/cal_amp/trunk/</a><br />
@@ -49,7 +76,7 @@ tr.entry {
 </div>
 
 <div class="block">
-	<h1>Compile</h1>
+	<h2>Compile</h2>
 
 	There are two things you need to set before you compile. Firstly, change the link target (unless, like me, you 	have winamp installed on drive G: in the usual folder). In Visual Studio 5, you do this by going to the "FileView" pane, right clicking on the project and selecting "Settings...". Then on the "Link" page, alter the value in the first editbox.<br>
 	<br>
@@ -57,7 +84,7 @@ tr.entry {
 </div>
 
 <div class="block">
-	<h1>How It Works</h1>
+	<h2>How It Works</h2>
 
 	When a track starts playing, Cal Amp calls http://www.your-url.com/script.php?track-name-here<br>
 	<br>
@@ -74,11 +101,12 @@ tr.entry {
 </div>
 
 <div class="block">
-	<h1>Known Issues</h1>
+	<h2>Known Issues</h2>
 
 	The final stop call when shutting down doesn't usually work. This can probably be fixed by making it synchronous.
 </div>
 
+</div>
 
 </body>
 </html>
