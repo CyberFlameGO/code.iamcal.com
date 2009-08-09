@@ -8,11 +8,12 @@ body {
 	color: #000000;
 	font-family: arial, sans-serif;
 	text-align: center;
+	margin: 0;
 }
 
 #main {
 	width: 740px;
-	margin: 0 auto;
+	margin: 8px auto;
 	text-align: left;
 }
 
@@ -45,6 +46,8 @@ tr.entry {
 </style>
 </head>
 <body>
+
+<? include('/var/www/cal/iamcal.com/templates/universal_nav.txt'); ?>
 
 <div id="main">
 
@@ -107,6 +110,8 @@ tr.entry {
 </div>
 
 </div>
+
+<? include('/var/www/cal/iamcal.com/templates/universal_tracker.txt'); ?>
 
 </body>
 </html>
