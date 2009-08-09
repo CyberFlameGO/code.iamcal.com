@@ -182,5 +182,7 @@ In the distant past I wrote a <a href="http://www.iamcal.com/publish/">few artic
 
 </div>
 
+<? include('/var/www/cal/iamcal.com/templates/universal_tracker.txt'); ?>
+
 </body>
 </html>
