@@ -54,6 +54,7 @@ In the distant past I wrote a <a href="http://www.iamcal.com/publish/">few artic
 	<li> <a href="http://code.iamcal.com/c/cal_amp/">Cal Amp - A WinAmp plugin and website that basically did the same as AudioScrobbler / Last.fm</a> </li>
 	<li> <a href="http://code.iamcal.com/php/fileman/">Fileman - a PHP based file management application</a> </li>
 	<li> <a href="http://code.iamcal.com/php/iTunesRemote/">iTunesRemote - Web based remote control for iTunes</a> </li>
+	<li> <a href="http://www.iamcal.com/misc/bf_debug/">A browser-based interactive debugger for the programming language Brainfuck</a> </li>
 </ul>
 
 <hr />
