@@ -29,6 +29,8 @@ h1 {
 </head>
 <body>
 
+<? include('/var/www/cal/iamcal.com/templates/universal_nav.txt'); ?>
+
 <div id="main">
 
 <h1>iTunes Remote</h1>
@@ -89,6 +91,8 @@ h1 {
 <p>Oh, and all the design is taken from Apple's iTunes, of course.</p>
 
 </div>
+
+<? include('/var/www/cal/iamcal.com/templates/universal_tracker.txt'); ?>
 
 </body>
 </html>
