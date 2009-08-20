@@ -1,3 +1,36 @@
+<?
+	function folder_updated($folder){
+		$path = "/var/www/cal/code.iamcal.com".$folder;
+		$files = array();
+
+		if ($dh = opendir($path)){
+			while (false !== ($file = readdir($dh))){
+				if (is_file($path.$file)){
+					$files[] = $path.$file;
+				}
+			}
+			closedir($dh);
+		}
+
+		$times = array();
+		foreach ($files as $file){
+			$stat = stat($file);
+			$times[$file] = $stat[mtime];
+		}
+
+		$last_update = max($times);
+		$ago = time() - $last_update;
+
+		if ($ago < 24 * 60 * 60){
+			return "(updated today)";
+		}
+		if ($ago > 365 * 24 * 60 * 60){
+			return "";
+		}
+
+		return "(updated ".date("Y-m-d", $last_update).")";
+	}
+?>
 <html>
 <head>
 <title>Cal's Code Stuff</title>
@@ -46,7 +79,7 @@ In the distant past I wrote a <a href="http://www.iamcal.com/publish/">few artic
 <h2>Things of note</h2>
 
 <ul>
-	<li> <a href="http://code.iamcal.com/docs/mysql/mysql_types.htm">MySQL Data Types</a> </li>
+	<li> <a href="http://code.iamcal.com/docs/mysql/">MySQL Data Types</a> </li>
 	<li> <a href="http://code.iamcal.com/php/lib_filter/">lib_filter - An HTML filtering library in PHP</a> </li>
 	<li> <a href="http://code.iamcal.com/php/rfc822/">RFC 822/2822/3696 Email address parser in PHP</a> </li>
 	<li> <a href="http://code.iamcal.com/pl/modules/">All of my perl modules</a> (<a href="http://search.cpan.org/~iamcal/">on CPAN</a>) </li>
@@ -55,6 +88,7 @@ In the distant past I wrote a <a href="http://www.iamcal.com/publish/">few artic
 	<li> <a href="http://code.iamcal.com/php/fileman/">Fileman - a PHP based file management application</a> </li>
 	<li> <a href="http://code.iamcal.com/php/iTunesRemote/">iTunesRemote - Web based remote control for iTunes</a> </li>
 	<li> <a href="http://www.iamcal.com/misc/bf_debug/">A browser-based interactive debugger for the programming language Brainfuck</a> </li>
+	<li> <a href="http://code.iamcal.com/php/lib_oauth/">lib_oauth - A very simple OAuth library for PHP4</a> </li>
 </ul>
 
 <hr />
@@ -84,7 +118,8 @@ In the distant past I wrote a <a href="http://www.iamcal.com/publish/">few artic
 
 	<li> <a href="/docs/">Documentation</a>
 	<ul>
-		<li> <a href="/docs/mysql/mysql_types.htm">MySQL data types</a>
+		<li> <a href="/docs/mysql/">MySQL data types</a>
+		<li> <a href="/docs/entities/">HTML 4 Character Entities</a>
 	</ul>
 
 	<li> <a href="/java/">Java</a>
@@ -127,23 +162,24 @@ In the distant past I wrote a <a href="http://www.iamcal.com/publish/">few artic
 		<li> <a href="/php/grim_crypt/">Grimcrypt cracker</a>
 		<li> <a href="/php/http/">HTTP client library</a>
 		<li> <a href="/php/lib/">Common Admin Library</a>
-		<li> <a href="/php/lib_filter/">A HTML filtering library</a> (updated 05/09/2006)
+		<li> <a href="/php/lib_filter/">A HTML filtering library</a> <?=folder_updated('/php/lib_filter/')?>
 		<li> <a href="/php/morse/">Morse code convertor</a>
 		<li> <a href="/php/porter_stemmer/">Porter Stemming Algorithm in PHP</a>
 		<li> <a href="/php/pre_tags/">Pre tag escaper</a>
-		<li> <a href="/php/rfc822/">RFC 822 / 2822 Address Parser</a>
+		<li> <a href="/php/rfc822/">RFC 822 / 2822 Address Parser</a> <?=folder_updated('/php/rfc822/')?>
 		<li> <a href="/php/rss_manip/readme.htm">RSS Manip PHP</a>
 		<li> <a href="/php/smarty/">Smarty Plugins</a>
 		<li> <a href="/php/sorter/">Custom sorting demo</a>
 		<li> <a href="/php/subscribe/">Automated Subscriber</a>
 		<li> <a href="/php/utf8_mail/">Sending UTF-8 Mail</a>
 		<li> <a href="/php/uuencode/">uuencoded decoder</a>
-		<li> <a href="/php/iTunesRemote/">iTunesRemote</a>
+		<li> <a href="/php/iTunesRemote/">iTunesRemote</a> <?=folder_updated('/php/iTunesRemote/')?>
+		<li> <a href="/php/lib_oauth/">PHP 4 OAuth library</a> <?=folder_updated('/php/lib_oauth/')?>
 	</ul>
 
 	<li> <a href="/pl/">Perl</a>
 	<ul>
-		<li> <a href="/pl/modules/"><b>My perl modules</b></a> (updated 22/08/2006)
+		<li> <a href="/pl/modules/"><b>My perl modules</b></a> <?=folder_updated('/pl/modules/')?>
 		<li> <a href="/pl/allura/">Allura code tools</a>
 		<li> <a href="/pl/bmp2eps/">bmp2eps convertor</a>
 		<li> <a href="/pl/brainfuck_interpreter/">A brainfuck interpreter</a>
