@@ -72,6 +72,7 @@ This is a random collection of snippets, small tools and libraries.<br />
 Various stuff is in my <a href="http://svn.iamcal.com/public/">public SVN repository</a>, which also has a <a href="http://trac.iamcal.com/public/">trac instance</a>.<br />
 Old desktop software projects are <a href="http://software.iamcal.com/">here</a>, but somewhat neglected.<br />
 In the distant past I wrote a <a href="http://www.iamcal.com/publish/">few articles</a> which may be of interest.<br />
+I created some <a href="http://www.iamcal.com/misc/fonts/">pixel fonts</a> which you might find useful.<br />
 <br />
 
 <hr />
@@ -111,7 +112,7 @@ In the distant past I wrote a <a href="http://www.iamcal.com/publish/">few artic
 		<li> <a href="/c/calculator/">Lex/Yacc Calculator Demo</a>
 		<li> <a href="/c/misc/">Misc Snippets</a>
 		<li> <a href="/c/animated_drag_rect/">Animated Drag Rectangles</a>
-		<li> <a href="/c/cl_amp/">Cal Amp - WinAmp plugin and webapp for recording listening habits</a>
+		<li> <a href="/c/cal_amp/">Cal Amp - WinAmp plugin and webapp for recording listening habits</a>
 	</ul>
 
 	<li> <a href="/css/">CSS</a>
