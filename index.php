@@ -90,6 +90,7 @@ I created some <a href="http://www.iamcal.com/misc/fonts/">pixel fonts</a> which
 	<li> <a href="http://code.iamcal.com/php/iTunesRemote/">iTunesRemote - Web based remote control for iTunes</a> </li>
 	<li> <a href="http://www.iamcal.com/misc/bf_debug/">A browser-based interactive debugger for the programming language Brainfuck</a> </li>
 	<li> <a href="http://code.iamcal.com/php/lib_oauth/">lib_oauth - A very simple OAuth library for PHP4</a> </li>
+	<li> <a href="http://code.iamcal.com/php/emoji/">Emoji for PHP - A library for converting and displaying emoji</a> </li>
 </ul>
 
 <hr />
@@ -176,6 +177,7 @@ I created some <a href="http://www.iamcal.com/misc/fonts/">pixel fonts</a> which
 		<li> <a href="/php/uuencode/">uuencoded decoder</a>
 		<li> <a href="/php/iTunesRemote/">iTunesRemote</a> <?=folder_updated('/php/iTunesRemote/')?>
 		<li> <a href="/php/lib_oauth/">PHP 4 OAuth library</a> <?=folder_updated('/php/lib_oauth/')?>
+		<li> <a href="/php/emoji/">Emoji for PHP</a> <?=folder_updated('/php/emoji/')?>
 	</ul>
 
 	<li> <a href="/pl/">Perl</a>
