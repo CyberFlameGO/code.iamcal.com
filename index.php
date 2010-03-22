@@ -69,7 +69,7 @@ h1 {
 <h1>Cal's Code Stuff</h1>
 
 This is a random collection of snippets, small tools and libraries.<br />
-Various stuff is in my <a href="http://svn.iamcal.com/public/">public SVN repository</a>, which also has a <a href="http://trac.iamcal.com/public/">trac instance</a>.<br />
+Various stuff is in my <a href="http://svn.iamcal.com/public/">public SVN repository</a>.<br />
 Old desktop software projects are <a href="http://software.iamcal.com/">here</a>, but somewhat neglected.<br />
 In the distant past I wrote a <a href="http://www.iamcal.com/publish/">few articles</a> which may be of interest.<br />
 I created some <a href="http://www.iamcal.com/misc/fonts/">pixel fonts</a> which you might find useful.<br />
