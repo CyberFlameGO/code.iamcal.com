@@ -71,6 +71,16 @@ dd { margin-bottom: 1em; }
 </dl>
 
 
+<h2>Saate.net</h2>
+
+<p>I created the software that powers the weekly <a href="http://www.saate.net/category/jumbles/">Jumbles</a> on <a href="http://www.saate.net/">Saate.net</a>. It's one of my favorite WoW blogs, focusing on obsessive play. Definately worth a read. And the weekly jumble challenge is fun.</p>
+
+
+<h2>Writing</h2>
+
+<p>To accompany <a href="http://www.saate.net/general/rngg/rng-stories-winner/">a discussion</a> about Bunny Hunter, I wrote a piece on drop rates and probabilities in WoW - <a href="http://www.iamcal.com/beating-the-rng/">World of Warcraft - Beating the RNG Boss</a>.</p>
+
+
 <h2>Rawr</h2>
 
 <p>I re-wrote and maintained the Hunter Module for <a href="http://rawr.codeplex.com/">Rawr</a> during the 2.2.* releases. At the time, it was a 100% match for the spreadsheet; I submitted back several pacthes for bugs in the rotation simulation code, pet talents and lots of little issues which can be found <a href="http://hunterloot.com/misc/bugs_closed.php">here</a>.</p>
