@@ -91,6 +91,7 @@ I created some <a href="http://www.iamcal.com/misc/fonts/">pixel fonts</a> which
 	<li> <a href="http://www.iamcal.com/misc/bf_debug/">A browser-based interactive debugger for the programming language Brainfuck</a> </li>
 	<li> <a href="http://code.iamcal.com/php/lib_oauth/">lib_oauth - A very simple OAuth library for PHP4</a> </li>
 	<li> <a href="http://code.iamcal.com/php/emoji/">Emoji for PHP - A library for converting and displaying emoji</a> </li>
+	<li> <a href="http://code.iamcal.com/pl/imap_folders/">IMAP Folders - Find out which IMAP folders are using up your space</a> </li>
 </ul>
 
 <hr />
@@ -188,6 +189,7 @@ I created some <a href="http://www.iamcal.com/misc/fonts/">pixel fonts</a> which
 		<li> <a href="/pl/brainfuck_interpreter/">A brainfuck interpreter</a>
 		<li> <a href="/pl/find/">Free text search for windows</a>
 		<li> <a href="/pl/fruit_ratios/">The fruit ratios problem</a>
+		<li> <a href="/pl/imap_folders/">IMAP Folders</a>
 		<li> <a href="/pl/mt3/">MovableType 3 Plugins</a>
 		<ul>
 			<li> <a href="/pl/mt3/audioscrobbler/">Audioscrobbler</a>
