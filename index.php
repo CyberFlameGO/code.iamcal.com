@@ -92,6 +92,7 @@ I created some <a href="http://www.iamcal.com/misc/fonts/">pixel fonts</a> which
 	<li> <a href="http://code.iamcal.com/php/lib_oauth/">lib_oauth - A very simple OAuth library for PHP4</a> </li>
 	<li> <a href="http://code.iamcal.com/php/emoji/">Emoji for PHP - A library for converting and displaying emoji</a> </li>
 	<li> <a href="http://code.iamcal.com/pl/imap_folders/">IMAP Folders - Find out which IMAP folders are using up your space</a> </li>
+	<li> <a href="http://code.iamcal.com/wow/">World of Warcraft related projects</a> </li>
 </ul>
 
 <hr />
@@ -212,6 +213,8 @@ I created some <a href="http://www.iamcal.com/misc/fonts/">pixel fonts</a> which
 	<li> <a href="/unix/">UNIX</a>
 
 	<li> <a href="/vb/">Visual Basic</a>
+
+	<li> <a href="/wow/">World of Warcraft</a>
 </ul>
 
 <hr />
