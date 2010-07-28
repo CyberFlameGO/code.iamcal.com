@@ -52,7 +52,7 @@ dd { margin-bottom: 1em; }
 		Are you working on Insane in the Membrane?
 		This addon helps you track how many kills and quests you need to complete the various requirements.
 		The Latin term "Non Compos Mentis" means "not of sound mind"; Because you'd have to be.
-		120 people have downloaded the latest version, as of June 18 2010.
+		Over 250 people have downloaded the latest version, as of July 28 2010.
 	</dt>
 
 	<dt>
@@ -66,6 +66,29 @@ dd { margin-bottom: 1em; }
 		If you're working on Darkmoon Faire rep for the [Insane in the Membrane] achievement, you'll need to watch the auction house for lots of different items - many cards, decks and herbs.
 		This addon lets you set a budget per epic deck(350 rep) and then finds any items that fit without your budget.
 		This is a plugin for Auctioneer and requires the Auctioneer addon to work.
+	</dt>
+
+	<dt>
+		<b>MillHouse</b>
+		<!--<a href="http://wow.curse.com/downloads/wow-addons/details/auc-searcher-insane.aspx">curse</a>,-->
+		(<a href="http://wow.curseforge.com/addons/millhouse/">curseforge</a>,
+		<a href="https://svn.iamcal.com/public/wow/MillHouse/trunk/">svn</a>,
+		<a href="http://github.com/iamcal/MillHouse">github</a>)
+	</dt>
+	<dd>
+		Quickly summarize which herbs in your bags are in enough quantity for milling.
+	</dt>
+
+	<dt>
+		<b>Precedence</b>
+		(<a href="http://wow.curse.com/downloads/wow-addons/details/precedence.aspx">curse</a>,
+		<a href="http://wow.curseforge.com/addons/precedence/">curseforge</a>,
+		<a href="https://svn.iamcal.com/public/wow/Precedence/trunk/">svn</a>,
+		<a href="http://github.com/iamcal/Precedence">github</a>)
+	</dt>
+	<dd>
+		Precedence is a raiding hunter's dashboard.
+		It shows shot priority countdowns, warnings and timers that are useful to a hunter who wants to maximize their DPS.
 	</dt>
 
 </dl>
