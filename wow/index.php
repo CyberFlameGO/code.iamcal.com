@@ -64,14 +64,14 @@ dd { margin-bottom: 1em; }
 	</dt>
 	<dd>
 		If you're working on Darkmoon Faire rep for the [Insane in the Membrane] achievement, you'll need to watch the auction house for lots of different items - many cards, decks and herbs.
-		This addon lets you set a budget per epic deck(350 rep) and then finds any items that fit without your budget.
+		This addon lets you set a budget per epic deck (350 rep) and then finds any items that fit within your budget.
 		This is a plugin for Auctioneer and requires the Auctioneer addon to work.
 	</dt>
 
 	<dt>
 		<b>MillHouse</b>
-		<!--<a href="http://wow.curse.com/downloads/wow-addons/details/auc-searcher-insane.aspx">curse</a>,-->
-		(<a href="http://wow.curseforge.com/addons/millhouse/">curseforge</a>,
+		(<a href="http://wow.curse.com/downloads/wow-addons/details/millhouse.aspx">curse</a>,
+		<a href="http://wow.curseforge.com/addons/millhouse/">curseforge</a>,
 		<a href="https://svn.iamcal.com/public/wow/MillHouse/trunk/">svn</a>,
 		<a href="http://github.com/iamcal/MillHouse">github</a>)
 	</dt>
