@@ -31,35 +31,32 @@ dd { margin-bottom: 1em; }
 		<b>Bunny Hunter</b>
 		(<a href="http://wow.curse.com/downloads/wow-addons/details/bunny-hunter.aspx">curse</a>,
 		<a href="http://wow.curseforge.com/addons/bunny-hunter/">curseforge</a>,
-		<a href="https://svn.iamcal.com/public/wow/BunnyHunter/trunk/">svn</a>,
 		<a href="http://github.com/iamcal/Bunny-Hunter">github</a>)
 	</dt>
 	<dd>
 		Bunny Hunter tracks how many times you've looted mobs that drop rare pets, how long you've spent farming and shows you the chance that you should have gotten your pet by now.
 		Supports (nearly) all the farmable pets and tracks multiple drops of each pet.
 		Just start looting those Bloodsail Pirates! 
-		1846 people have downloaded the latest version, as of June 18 2010.
+		It has been downloaded over 11,000 times, as of December 15 2010.
 	</dt>
 
 	<dt>
 		<b>Non Compos Mentis</b>
 		(<a href="http://wow.curse.com/downloads/wow-addons/details/non-compos-mentis.aspx">curse</a>,
 		<a href="http://wow.curseforge.com/addons/non-compos-mentis/">curseforge</a>,
-		<a href="https://svn.iamcal.com/public/wow/NonComposMentis/trunk/">svn</a>,
 		<a href="http://github.com/iamcal/Non-Compos-Mentis">github</a>)
 	</dt>
 	<dd>
 		Are you working on Insane in the Membrane?
 		This addon helps you track how many kills and quests you need to complete the various requirements.
 		The Latin term "Non Compos Mentis" means "not of sound mind"; Because you'd have to be.
-		Over 250 people have downloaded the latest version, as of July 28 2010.
+		Over 1300 people have downloaded the latest version, as of December 15 2010.
 	</dt>
 
 	<dt>
 		<b>Auc-Searcher-Insane</b>
 		(<a href="http://wow.curse.com/downloads/wow-addons/details/auc-searcher-insane.aspx">curse</a>,
 		<a href="http://wow.curseforge.com/addons/auc-searcher-insane/">curseforge</a>,
-		<a href="https://svn.iamcal.com/public/wow/Auc-Searcher-Insane/trunk/">svn</a>,
 		<a href="http://github.com/iamcal/Auc-Searcher-Insane">github</a>)
 	</dt>
 	<dd>
@@ -72,7 +69,6 @@ dd { margin-bottom: 1em; }
 		<b>MillHouse</b>
 		(<a href="http://wow.curse.com/downloads/wow-addons/details/millhouse.aspx">curse</a>,
 		<a href="http://wow.curseforge.com/addons/millhouse/">curseforge</a>,
-		<a href="https://svn.iamcal.com/public/wow/MillHouse/trunk/">svn</a>,
 		<a href="http://github.com/iamcal/MillHouse">github</a>)
 	</dt>
 	<dd>
@@ -83,7 +79,6 @@ dd { margin-bottom: 1em; }
 		<b>Precedence</b>
 		(<a href="http://wow.curse.com/downloads/wow-addons/details/precedence.aspx">curse</a>,
 		<a href="http://wow.curseforge.com/addons/precedence/">curseforge</a>,
-		<a href="https://svn.iamcal.com/public/wow/Precedence/trunk/">svn</a>,
 		<a href="http://github.com/iamcal/Precedence">github</a>)
 	</dt>
 	<dd>
