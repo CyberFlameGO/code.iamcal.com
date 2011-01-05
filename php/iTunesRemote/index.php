@@ -79,9 +79,9 @@ h1 {
 
 <p>iTunes Remote is being actively developed and has not had a formal release.</p>
 
-<p>You can get the latest version of it from my public SVN repository here:</p>
+<p>You can get the latest version of it from my public Git repository here:</p>
 
-<p><a href="https://svn.iamcal.com/public/php/iTunesRemote/">https://svn.iamcal.com/public/php/iTunesRemote/</a></p>
+<p><a href="https://github.com/iamcal/iTunesRemote">https://github.com/iamcal/iTunesRemote</a></p>
 
 
 <h2>Credits</h2>
