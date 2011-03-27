@@ -8,9 +8,9 @@
 
 <p>This library allows the handling and conversion of Emoji in PHP.</p>
 
-<p>You can <a href="emoji_r1.zip">download the latest release</a> (r1) which contains a helpful readme file.</p>
+<p>You can <a href="https://github.com/iamcal/php-emoji/zipball/r2">download the latest release</a> (r2) which contains a helpful readme file.</p>
 
-<p>If you want the bleeding edge, it's also in my <a href="https://svn.iamcal.com/public/php/emoji/trunk/">public SVN repo</a>.</p>
+<p>If you want the bleeding edge, it's also in my <a href="https://github.com/iamcal/php-emoji">public GitHub repo</a>.</p>
 
 
 <h2>Example</h2>
