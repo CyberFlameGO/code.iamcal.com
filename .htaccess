@@ -1,1 +1,3 @@
 Options +Indexes
+HeaderName /dirheader.php
+ReadmeName /dirfooter.php
