@@ -47,4 +47,6 @@ p.homelink a:hover {
 
 <div id="main">
 
+<? if (!$no_homelink){ ?>
 <p class="homelink"><a href="/">&laquo; Code Homepage</a></p>
+<? } ?>
