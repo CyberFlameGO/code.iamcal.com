@@ -43,6 +43,16 @@
 
 <style>
 
+pre {
+
+	border: 1px solid #666;
+
+	background-color: #EEE;
+
+	padding: 10px;
+
+}
+
 table {
     -webkit-border-radius: 0.41em;
     -moz-border-radius: 0.41em;
