@@ -14,11 +14,11 @@ dd { margin-bottom: 1em; }
 
 <h2>Hunter Loot</h2>
 
-<p>I created <a href="http://hunterloot.com">hunterloot.com</a> to help determine how useful any given piece of gear is to different hunter specs. It scrapes gear and enchant data from the armory and wowhead to create an index of each slot. It's a very useful quick index, but is not a replacement for the spreadsheet (it doesn;t take into account procs or set bonuses).</p>
+<p>I created <a href="http://hunterloot.com">hunterloot.com</a> to help determine how useful any given piece of gear is to different hunter specs. It scrapes gear and enchant data from the armory and wowhead to create an index of each slot. It's a very useful quick index and a decent replacement for the spreadsheet (it doesn't take into account bonuses, but it handles trinket procs and hit capping).</p>
 
 <p>Hunter Loot can be used in conjunction with <a href="http://femaledwarf.com/">Female Dwarf</a> to determine stat weightings for your exact spec, gear and talents. Create a profile on Female Dwarf first, and then click through to Hunter Loot to get personalized, automatically updating gear recommendations.</p>
 
-<p>As of June 2010, Hunter Loot gets around 25,000 visitors a month.</p>
+<p>From Nov 2008 to Nov 2011 Hunter Loot displayed gear recommendations for over 350,000 different Hunter builds.</p>
 
 
 <h2>Game Addons</h2>
@@ -37,7 +37,7 @@ dd { margin-bottom: 1em; }
 		Bunny Hunter tracks how many times you've looted mobs that drop rare pets, how long you've spent farming and shows you the chance that you should have gotten your pet by now.
 		Supports (nearly) all the farmable pets and tracks multiple drops of each pet.
 		Just start looting those Bloodsail Pirates! 
-		It has been downloaded over 11,000 times, as of December 15 2010.
+		It has been downloaded over 29,000 times, as of November 2011.
 	</dt>
 
 	<dt>
@@ -84,6 +84,14 @@ dd { margin-bottom: 1em; }
 	<dd>
 		Precedence is a raiding hunter's dashboard.
 		It shows shot priority countdowns, warnings and timers that are useful to a hunter who wants to maximize their DPS.
+	</dt>
+
+	<dt>
+		<b>Professor2</b>
+		(<a href="https://github.com/iamcal/wow-Professor2">github</a>)
+	</dt>
+	<dd>
+		My fork of <a href="http://www.curse.com/addons/wow/professor">Professor</a>, adding a GUI for tracking archaeology progress.
 	</dt>
 
 </dl>
