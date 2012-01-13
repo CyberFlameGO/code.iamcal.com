@@ -106,6 +106,7 @@ dd { margin-bottom: 1em; }
 
 <p>To accompany <a href="http://www.saate.net/general/rngg/rng-stories-winner/">a discussion</a> about Bunny Hunter, I wrote a piece on drop rates and probabilities in WoW - <a href="http://www.iamcal.com/beating-the-rng/">World of Warcraft - Beating the RNG Boss</a>.</p>
 
+<p>More recently I wrote about hunter theorycrafting, specifically <a href="http://www.iamcal.com/survival-haste-plateau-myth/">the myth of the Survival haste plateau</a>. Still can't get away from theorycrafting.</p>
 
 <h2>Rawr</h2>
 
