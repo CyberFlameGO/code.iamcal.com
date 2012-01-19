@@ -114,5 +114,14 @@ dd { margin-bottom: 1em; }
 
 <p>Since then, the module was rewritten breaking most calculations and should not be used. Either use the spreadsheet (which now has a gear optimizer, which is a reasonable substitute) or the web app <a href="http://femaledwarf.com/">Female Dwarf</a> which is excellent.</p>
 
+<h2>Other code</h2>
+
+<p><a href="https://github.com/iamcal/GuildInfo">GuildInfo</a> is a simple web app I put together in around 2008 as a way to collect together the photos from my guild. It grew to include achievements, stats and quests as Blizzard opened up the armory for the first time.</p>
+
+<p>When I started leading 25 man raids, tracking attendance for our zero-sum-DKP-with-bonsues system became difficult. I created <a href="https://github.com/iamcal/AttendanceTracker">AttendanceTracker</a> as a simple tool to let me quickly enter raid events (players joining and leaving, boss kills, starting rosters, etc) and getting a better picture of attendance over time.</p>
+
+<p>I created <a href="https://github.com/iamcal/RaidTracker">RaidTracker</a> once my guild started using HeadCount for attendance and loot tracking. It's a simple web frontend to HeadCount data, allowing you to view who killed what and which items were looted.</p>
+
+
 
 <? include('../foot.txt'); ?>
