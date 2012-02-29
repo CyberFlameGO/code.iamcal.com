@@ -94,6 +94,16 @@ dd { margin-bottom: 1em; }
 		My fork of <a href="http://www.curse.com/addons/wow/professor">Professor</a>, adding a GUI for tracking archaeology progress.
 	</dt>
 
+	<dt>
+		<b>ComboMeal</b>
+		(<a href="http://www.curse.com/addons/wow/combomeal">curse</a>,
+		<a href="http://wow.curseforge.com/addons/combomeal//">curseforge</a>,
+		<a href="https://github.com/iamcal/ComboMeal">github</a>)
+	</dt>
+	<dd>
+		An addon for monitoring combo-point abilities and cooldowns for raiding combat rogues.
+	</dt>
+
 </dl>
 
 
