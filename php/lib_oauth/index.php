@@ -9,6 +9,6 @@
 
 <p>It supports OAuth 1.0a and allows you to make authenticated POST requests with the cURL extension installed.</p>
 
-<p>You can grab a copy from <a href="https://svn.iamcal.com/public/php/lib_oauth/">my public SVN Repo</a> or from the master branch on <a href="http://github.com/iamcal/lib_oauth">github</a>.</p>
+<p>You can grab a copy from the master branch on <a href="http://github.com/iamcal/lib_oauth">github</a>.</p>
 
 <? include('../../foot.txt'); ?>
