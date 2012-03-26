@@ -12,6 +12,15 @@ dd { margin-bottom: 1em; }
 <p>I'm quite a fan of <a href="http://www.worldofwarcraft.com/">World of Warcraft</a>, so as a result I have a few different projects related to it.</p>
 
 
+<h2>Writing</h2>
+
+<p>I occasionally blog about WoW-related topics on <a href="http://world-of-theorycraft.tumblr.com/">World of Theorycraft</a>.</p>
+
+<p>To accompany <a href="http://www.saate.net/general/rngg/rng-stories-winner/">a discussion</a> about my addon <i>Bunny Hunter</i>, I wrote a piece on drop rates and probabilities in WoW - <a href="http://www.iamcal.com/beating-the-rng/">World of Warcraft - Beating the RNG Boss</a>.</p>
+
+<p>More recently I wrote about hunter theorycrafting, specifically <a href="http://www.iamcal.com/survival-haste-plateau-myth/">the myth of the Survival haste plateau</a>. Still can't get away from theorycrafting.</p>
+
+
 <h2>Hunter Loot</h2>
 
 <p>I created <a href="http://hunterloot.com">hunterloot.com</a> to help determine how useful any given piece of gear is to different hunter specs. It scrapes gear and enchant data from the armory and wowhead to create an index of each slot. It's a very useful quick index and a decent replacement for the spreadsheet (it doesn't take into account bonuses, but it handles trinket procs and hit capping).</p>
@@ -37,7 +46,7 @@ dd { margin-bottom: 1em; }
 		Bunny Hunter tracks how many times you've looted mobs that drop rare pets, how long you've spent farming and shows you the chance that you should have gotten your pet by now.
 		Supports (nearly) all the farmable pets and tracks multiple drops of each pet.
 		Just start looting those Bloodsail Pirates! 
-		It has been downloaded over 29,000 times, as of November 2011.
+		It has been downloaded over 40,000 times, as of February 2012.
 	</dt>
 
 	<dt>
@@ -111,12 +120,6 @@ dd { margin-bottom: 1em; }
 
 <p>I created the software that powers the weekly <a href="http://www.saate.net/category/jumbles/">Jumbles</a> on <a href="http://www.saate.net/">Saate.net</a>. It's one of my favorite WoW blogs, focusing on obsessive play. Definately worth a read. And the weekly jumble challenge is fun.</p>
 
-
-<h2>Writing</h2>
-
-<p>To accompany <a href="http://www.saate.net/general/rngg/rng-stories-winner/">a discussion</a> about Bunny Hunter, I wrote a piece on drop rates and probabilities in WoW - <a href="http://www.iamcal.com/beating-the-rng/">World of Warcraft - Beating the RNG Boss</a>.</p>
-
-<p>More recently I wrote about hunter theorycrafting, specifically <a href="http://www.iamcal.com/survival-haste-plateau-myth/">the myth of the Survival haste plateau</a>. Still can't get away from theorycrafting.</p>
 
 <h2>Rawr</h2>
 
