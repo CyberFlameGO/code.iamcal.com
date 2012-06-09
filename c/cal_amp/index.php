@@ -67,8 +67,8 @@ tr.entry {
 <div class="block">
 	<h2>Download</h2>
 
-	The entire source for Cal Amp can be found in my public SVN Repository, here:<br />
-	<a href="https://svn.iamcal.com/public/code/cal_amp/trunk/">https://svn.iamcal.com/public/code/cal_amp/trunk/</a><br />
+	The entire source for Cal Amp can be found on GitHub, here:<br />
+	<a href="https://github.com/iamcal/CalAmp">https://github.com/iamcal/CalAmp</a><br />
 	<br />
 	The latest tagged version of the plugin source itself is here:<br />
 	<a href="http://iamcal-downloads.s3.amazonaws.com/software/cal_amp_1.02.zip">cal_amp_1.02.zip</a><br />
