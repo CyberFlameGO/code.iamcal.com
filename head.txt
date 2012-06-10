@@ -11,7 +11,7 @@ body {
 }
 
 #main {
-	width: <?=$width?$width:740?>px;
+	width: <?=$width?$width:800?>px;
 	margin: 0 auto;
 	text-align: left;
 	padding: 1em 1em 5em 1em;
@@ -43,7 +43,10 @@ p.homelink a:hover {
 </head>
 <body>
 
-<? include('/var/www/cal/iamcal.com/templates/universal_nav.txt'); ?>
+<?
+	$nav = 'code';
+	include('/var/www/cal/iamcal.com/templates/universal_nav.txt');
+?>
 
 <div id="main">
 

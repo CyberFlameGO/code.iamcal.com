@@ -44,7 +44,7 @@ body {
 }
 
 #main {
-	width: 740px;
+	width: 800px;
 	margin: 0 auto;
 	text-align: left;
 	padding: 1em 1em 5em 1em;
@@ -62,7 +62,10 @@ h1 {
 </head>
 <body>
 
-<? include('/var/www/cal/iamcal.com/templates/universal_nav.txt'); ?>
+<?
+	$nav = 'code';
+	include('/var/www/cal/iamcal.com/templates/universal_nav.txt');
+?>
 
 <div id="main">
 
