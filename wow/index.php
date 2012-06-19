@@ -20,6 +20,11 @@ dd { margin-bottom: 1em; }
 
 <p>More recently I wrote about hunter theorycrafting, specifically <a href="http://www.iamcal.com/survival-haste-plateau-myth/">the myth of the Survival haste plateau</a>. Still can't get away from theorycrafting.</p>
 
+<h2>World of Map Craft</h2>
+
+<p>In 2012 I released <a href="http://worldofmapcraft.com/">worldofmapcraft.com</a>, containing slippy-maps for Azeroth and all battlegrounds, dungeons and raids released up to Cataclysm.</p>
+
+<p>I <a href="http://www.iamcal.com/world-of-mapcraft/">wrote about the process</a> and <a href="https://github.com/iamcal/World-of-MapCraft">released the source code</a>. It was covered by many gaming news sites included Massviely and EuroGamer.</p>
 
 <h2>Hunter Loot</h2>
 
