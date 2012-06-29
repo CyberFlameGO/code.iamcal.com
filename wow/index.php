@@ -5,11 +5,32 @@
 ?>
 <style>
 dd { margin-bottom: 1em; }
+table.wow td {
+	text-align: center;
+	font-size: 12px;
+	color: #666;
+}
+table.wow a {
+	border: 1px solid black;
+	display: inline-block;
+	padding: 1px;
+	margin-bottom: 8px;
+}
 </style>
 
 <h1>World of Warcraft</h1>
 
-<p>I'm quite a fan of <a href="http://www.worldofwarcraft.com/">World of Warcraft</a>, so as a result I have a few different projects related to it.</p>
+<p>I'm quite a fan of <a href="http://www.worldofwarcraft.com/">World of Warcraft</a>, having raided fairly actively since Vanilla. As a result I have a few different projects related to it.</p>
+
+<table width="100%" class="wow"><tr>
+	<td><a href="http://www.flickr.com/photos/bees/322875988/" title="Nearly down this time by ???bees?, on Flickr"><img src="http://farm1.staticflickr.com/139/322875988_8e81f6660f_s.jpg" width="75" height="75" alt="Nearly down this time"></a><br />MC</td>
+	<td><a href="http://www.flickr.com/photos/bees/330717765/" title="Onyxia downed by ???bees?, on Flickr"><img src="http://farm1.staticflickr.com/160/330717765_d036e48d99_s.jpg" width="75" height="75" alt="Onyxia downed"></a><br />Ony</td>
+	<td><a href="http://www.flickr.com/photos/bees/513109016/" title="Big bad wolf by ???bees?, on Flickr"><img src="http://farm1.staticflickr.com/222/513109016_79c18aeded_s.jpg" width="75" height="75" alt="Big bad wolf"></a><br />Kara</td>
+	<td><a href="http://www.flickr.com/photos/bees/1803240492/" title="Hydross down by ???bees?, on Flickr"><img src="http://farm3.staticflickr.com/2016/1803240492_20da524148_s.jpg" width="75" height="75" alt="Hydross down"></a><br />SSC</td>
+	<td><a href="http://www.flickr.com/photos/bees/3082128901/" title="maexxna by ???bees?, on Flickr"><img src="http://farm4.staticflickr.com/3170/3082128901_1e35db89eb_s.jpg" width="75" height="75" alt="maexxna"></a><br />Naxx</td>
+	<td><a href="http://www.flickr.com/photos/bees/4217604229/" title="ICC10 by ???bees?, on Flickr"><img src="http://farm3.staticflickr.com/2537/4217604229_a1e81a4d11_s.jpg" width="75" height="75" alt="ICC10"></a><br />ICC</td>
+	<td><a href="http://www.flickr.com/photos/bees/7463518482/" title="2011-02-28: Cho'gall by ???bees?, on Flickr"><img src="http://farm9.staticflickr.com/8019/7463518482_95f2982f58_s.jpg" width="75" height="75" alt="2011-02-28: Cho'gall"></a><br />BoT</td>
+</tr></table>
 
 
 <h2>Writing</h2>
