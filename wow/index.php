@@ -72,7 +72,18 @@ table.wow a {
 		Bunny Hunter tracks how many times you've looted mobs that drop rare pets, how long you've spent farming and shows you the chance that you should have gotten your pet by now.
 		Supports (nearly) all the farmable pets and tracks multiple drops of each pet.
 		Just start looting those Bloodsail Pirates! 
-		It has been downloaded over 40,000 times, as of February 2012.
+		It has been downloaded over 60,000 times, as of September 2012.
+	</dt>
+
+	<dt>
+		<b>BuffGuide</b>
+		(<a href="http://www.curse.com/addons/wow/buff-guide">curse</a>,
+		<a href="http://wow.curseforge.com/addons/buff-guide/">curseforge</a>,
+		<a href="https://github.com/iamcal/BuffGuide">github</a>)
+	</dt>
+	<dd>
+		This simple addon shows the 8 MoP raid buffs (and where to get them if you're missing them),
+		along with food and flask status. Replaces the long-deprecated BuffEnough.
 	</dt>
 
 	<dt>
@@ -132,13 +143,20 @@ table.wow a {
 	<dt>
 		<b>ComboMeal</b>
 		(<a href="http://www.curse.com/addons/wow/combomeal">curse</a>,
-		<a href="http://wow.curseforge.com/addons/combomeal//">curseforge</a>,
+		<a href="http://wow.curseforge.com/addons/combomeal/">curseforge</a>,
 		<a href="https://github.com/iamcal/ComboMeal">github</a>)
 	</dt>
 	<dd>
 		An addon for monitoring combo-point abilities and cooldowns for raiding combat rogues.
 	</dt>
 
+	<dt>
+		<b>ButtonMash</b>
+		(<a href="https://github.com/iamcal/wow-ButtonMash">github</a>)
+	</dt>
+	<dd>
+		A multi-class version of ComboMeal, not quite ready to use.
+	</dt>
 </dl>
 
 
