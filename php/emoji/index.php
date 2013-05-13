@@ -8,9 +8,10 @@
 
 <p>This library allows the handling and conversion of Emoji in PHP.</p>
 
-<p>You can <a href="https://github.com/iamcal/php-emoji/zipball/r3">download the latest release</a> (r3) which contains a helpful readme file.</p>
+<p>You can <a href="https://github.com/iamcal/php-emoji/archive/master.zip">download a zipfile</a> of the latest code,
+	which contains a helpful readme file.</p>
 
-<p>If you want the bleeding edge, it's also in my <a href="https://github.com/iamcal/php-emoji">public GitHub repo</a>.</p>
+<p>If you want to browse the code, it's in a <a href="https://github.com/iamcal/php-emoji">public GitHub repo</a>.</p>
 
 
 <h2>Example</h2>
@@ -83,13 +84,18 @@ table tbody td {
     padding: 0.41em;
 }
 
-<? include('inc_css.txt'); ?>
+<? include('php-emoji/emoji.css'); ?>
 
 </style>
 
 <h2>Full Emoji Catalog</h2>
 
-<? include('inc_table.txt'); ?>
+<?
+	$all = file_get_contents('php-emoji/table.htm');
+	if (preg_match('!<table.*?\/table>!s', $all, $m)){
+		echo $m[0];
+	}
+?>
 
 <?
 	include('../../foot.txt');
