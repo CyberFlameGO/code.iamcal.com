@@ -4,3 +4,6 @@
 [submodule "php/lib_filter/clone"]
 	path = php/lib_filter/clone
 	url = git@github.com:iamcal/lib_filter.git
+[submodule "php/lib_sanitize"]
+	path = php/lib_sanitize
+	url = git@github.com:iamcal/lib_sanitize.git
