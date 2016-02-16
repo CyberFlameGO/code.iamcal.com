@@ -23,7 +23,7 @@ td {
 </head>
 <body>
 
-<? include('/var/www/cal/iamcal.com/templates/universal_nav.txt'); ?>
+<? include('/var/www/html/code.iamcal.com/shared/universal_nav.txt'); ?>
 
 <div id="page">
 
@@ -96,7 +96,7 @@ td {
 
 </div>
 
-<? include('/var/www/cal/iamcal.com/templates/universal_tracker.txt'); ?>
+<? include('/var/www/html/code.iamcal.com/shared/universal_tracker.txt'); ?>
 
 </body>
 </html>

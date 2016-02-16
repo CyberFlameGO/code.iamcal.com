@@ -1,6 +1,7 @@
 <?
 	function folder_updated($folder){
-		$path = "/var/www/cal/code.iamcal.com".$folder;
+
+		$path = "/var/www/html/code.iamcal.com".$folder;
 		$files = array();
 
 		if ($dh = opendir($path)){
@@ -11,6 +12,7 @@
 			}
 			closedir($dh);
 		}
+		if (!count($files)) return '';
 
 		$times = array();
 		foreach ($files as $file){
@@ -33,7 +35,7 @@
 ?>
 <html>
 <head>
-<title>Cal's Code Stuff</title>
+<title>Cal's Code Stuff [n4]</title>
 <style>
 
 body {
@@ -64,7 +66,7 @@ h1 {
 
 <?
 	$nav = 'code';
-	include('/var/www/cal/iamcal.com/templates/universal_nav.txt');
+	include('/var/www/html/code.iamcal.com/shared/universal_nav.txt');
 ?>
 
 <div id="main">
@@ -230,7 +232,7 @@ I created some <a href="http://www.iamcal.com/misc/fonts/">pixel fonts</a> which
 
 </div>
 
-<? include('/var/www/cal/iamcal.com/templates/universal_tracker.txt'); ?>
+<? include('/var/www/html/code.iamcal.com/shared/universal_tracker.txt'); ?>
 
 </body>
 </html>
