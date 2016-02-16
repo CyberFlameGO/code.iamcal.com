@@ -1,0 +1,102 @@
+#!/usr/bin/perl
+
+use CGI;
+
+$query = new CGI;
+
+$enc = $query->param('enc');
+$dec = $query->param('dec');
+
+$data = $query->param('data');
+
+&LoadMap;
+if ($enc ne ""){$data = &Encode($data);}
+if ($dec ne ""){$data = &Decode($data);}
+
+print "Content-Type: text/html\n\n";
+
+print<<PAGE;
+
+<html>
+<body>
+
+<center>
+<h1>The Allura Code</h1>
+</center>
+
+<form method="post">
+
+<center>
+<textarea name="data" cols="40" rows="25">$data</textarea><br>
+<input type="submit" name="enc" value="Encode">
+<input type="submit" name="dec" value="Decode">
+</center>
+</form>
+
+</body>
+
+PAGE
+
+exit;
+
+########################################################################
+
+sub Decode{
+my ($data) = @_;
+$data =~ s/sup/%/ig;
+foreach(keys %invmap){$data =~ s/$_/$invmap{"\L$_"}/eig;}
+$data =~ s/(\/|\n)//g;
+$data =~ s/\s+/ /g;
+$data =~ s/(\w+)/\u\L$1/g;
+$data =~ s/<br>/\n/ig;
+return $data;
+}
+
+
+########################################################################
+
+sub Encode{
+my ($data) = @_;
+$data =~  s/sup/\%/ig;
+foreach(keys %map){$data =~ s/$_/$map{"\L$_"}/eig;}
+$data =~  s/\%/sup/g;
+$data =~ s/\n/<br>/ig;
+$data =~ s/(\s+)/ \/ /g;
+return $data;
+}
+
+
+########################################################################
+
+sub LoadMap{
+
+$map{'a'} = '2<%>1</%>';
+$map{'b'} = '2<%>2</%>';
+$map{'c'} = '2<%>3</%>';
+$map{'d'} = '3<%>1</%>';
+$map{'e'} = '3<%>2</%>';
+$map{'f'} = '3<%>3</%>';
+$map{'g'} = '4<%>1</%>';
+$map{'h'} = '4<%>2</%>';
+$map{'i'} = '4<%>3</%>';
+$map{'j'} = '5<%>1</%>';
+$map{'k'} = '5<%>2</%>';
+$map{'l'} = '5<%>3</%>';
+$map{'m'} = '6<%>1</%>';
+$map{'n'} = '6<%>2</%>';
+$map{'o'} = '6<%>3</%>';
+$map{'p'} = '7<%>1</%>';
+$map{'q'} = '7<%>2</%>';
+$map{'r'} = '7<%>3</%>';
+$map{'s'} = '7<%>4</%>';
+$map{'t'} = '8<%>1</%>';
+$map{'u'} = '8<%>2</%>';
+$map{'v'} = '8<%>3</%>';
+$map{'w'} = '9<%>1</%>';
+$map{'x'} = '9<%>2</%>';
+$map{'y'} = '9<%>3</%>';
+$map{'z'} = '0<%>2</%>';
+
+%invmap = reverse(%map);
+
+}

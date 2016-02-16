@@ -1,0 +1,575 @@
+.sub _main
+
+	print "sha1(\"this is a test\") : "
+	$S1 = _sha1("this is a test")
+	print $S1
+	print "\n"
+
+	end
+.end
+
+#
+# stuff below here is the real code
+#
+
+.sub _string_to_buffer
+	.param string s
+
+	.local pmc buffer
+
+	new buffer, .PerlArray
+
+	length $I0, s
+	buffer = $I0
+
+	$I1 = 0
+_string_to_buffer_jump1:
+
+	ord $I2, s, $I1
+	buffer[$I1] = $I2
+
+	$I1 = $I1 + 1
+	if $I1 < $I0 goto _string_to_buffer_jump1
+
+	.pcc_begin_return
+	.return buffer
+	.pcc_end_return
+.end
+
+
+.sub _sha1_str2blks_SHA1
+	.param string str_in
+
+	.local pmc str
+	.local int nblk
+	.local pmc blks
+
+	str = _string_to_buffer(str_in)
+
+	# $nblk = ((strlen($str) + 8) >> 6) + 1; 
+
+	$I0 = str
+	$I0 = $I0 + 8
+	$I0 = $I0 >> 6
+	$I0 = $I0 & 0xfff
+	nblk = $I0 + 1
+
+
+	# for($i=0; $i < $nblk * 16; $i++) $blks[$i] = 0; 
+
+	new blks, .PerlArray
+
+	$I0 = 0
+	$I1 = nblk * 16
+
+sha1_str2blks_SHA1_loop_1:
+
+	blks[$I0] = 0
+
+	$I0 = $I0 + 1
+	if $I0 < $I1 goto sha1_str2blks_SHA1_loop_1
+
+
+	# for($i=0; $i < strlen($str); $i++) { 
+	# 	$blks[$i >> 2] |= ord(substr($str, $i, 1)) << (24 - ($i % 4) * 8); 
+	# } 
+
+	$I0 = 0
+
+sha1_str2blks_SHA1_loop_2:
+
+	$I1 = $I0 >> 2
+
+	$I3 =  str[$I0]
+
+	$I4 = $I0 % 4
+	$I4 = $I4 * 8
+	$I4 = 24 - $I4
+
+	$I2 =  $I3 << $I4
+	$I3 = blks[$I1]
+	$I3 = $I3 | $I2
+	blks[$I1] = $I3
+
+	$I0 = $I0 + 1
+	$I1 = str
+	if $I0 < $I1 goto sha1_str2blks_SHA1_loop_2
+	
+
+	# $blks[$i >> 2] |= 0x80 << (24 - ($i % 4) * 8);
+
+	$I1 = $I0 >> 2
+	$I2 = $I0 % 4
+	$I2 = $I2 * 8
+	$I2 = 24 - $I2
+	$I2 = 0x80 << $I2
+	$I3 = blks[$I1]
+	$I3 = $I3 | $I2
+	blks[$I1] = $I3
+
+
+	# $blks[$nblk * 16 - 1] = strlen($str) * 8; 
+
+	$I0 = nblk * 16
+	$I0 = $I0 - 1
+	$I1 = str
+	$I1 = $I1 * 8
+	blks[$I0] = $I1
+
+	# return $blks; 
+	# this isn't needed - we're doing pass by ref. i hope :)
+
+	.pcc_begin_return
+	.return blks
+	.pcc_end_return
+.end
+
+.sub _sha1_safe_add
+	.param int x
+	.param int y
+
+	.local int lsw
+	.local int msw
+
+	# $lsw = ($x & 0xFFFF) + ($y & 0xFFFF); 
+
+	$I0 = x & 0xFFFF
+	$I1 = y & 0xFFFF
+	lsw = $I0 + $I1
+
+
+	# $msw = ($x >> 16) + ($y >> 16) + ($lsw >> 16); 
+
+	$I0 = x >> 16
+	$I1 = y >> 16
+	$I2 = lsw >> 16
+	msw = $I0 + $I1
+	msw = msw + $I2
+
+
+	# return ($msw << 16) | ($lsw & 0xFFFF); 
+
+	$I1 = msw << 16
+	$I2 = lsw & 0xFFFF
+	$I0 = $I1 | $I2
+
+	.pcc_begin_return
+	.return $I0
+	.pcc_end_return
+.end
+
+.sub _sha1_rol
+	.param int numb
+	.param int cnt
+
+	# return ($num << $cnt) | sha1_zeroFill($num, 32 - $cnt); 
+
+	$I1 = numb << cnt
+	$I3 = 32 - cnt
+	$I2 = _sha1_zeroFill(numb, $I3)
+
+	$I0 = $I1 | $I2
+
+	.pcc_begin_return
+	.return $I0
+	.pcc_end_return
+
+.end
+
+.sub _sha1_zeroFill
+	.param int a
+	.param int b
+
+	.local string bin
+
+	# $bin = decbin($a); 
+	bin = _decbin(a)
+
+	# if (strlen($bin) < $b) $bin = 0; 
+	# else $bin = substr($bin, 0, strlen($bin) - $b); 
+
+	length $I0, bin
+	if $I0 < b goto _sha1_zeroFill_jump1
+	goto _sha1_zeroFill_jump2
+
+_sha1_zeroFill_jump1:
+	bin = "0"
+	goto _sha1_zeroFill_jump3
+
+_sha1_zeroFill_jump2:
+	length $I0, bin
+	$I0 = $I0 - b
+	substr bin, bin, 0, $I0
+	goto _sha1_zeroFill_jump3
+
+_sha1_zeroFill_jump3:
+
+
+	# for ($i=0; $i < $b; $i++) { 
+	#     $bin = "0".$bin; 
+	# } 
+
+	.local int i
+
+	i = 0
+	if i >= b goto _sha1_zeroFill_jump5
+_sha1_zeroFill_jump4:
+
+	concat bin, "0", bin
+
+	i = i + 1
+	if i < b goto _sha1_zeroFill_jump4
+
+_sha1_zeroFill_jump5:
+
+	# return bindec($bin); 
+
+	$I0 = _bindec(bin)
+
+	.pcc_begin_return
+	.return $I0
+	.pcc_end_return
+	
+.end
+
+.sub _decbin
+	.param int a
+
+	$P0 = new Array
+	$P0 = 1
+	$P0[0] = a
+ 
+	sprintf $S0, "%b", $P0
+
+	length $I0, $S0
+
+	if $I0 <= 32 goto _decbin_jump1
+
+	$I0 = $I0 - 32
+
+	substr $S0, $S0, $I0
+
+_decbin_jump1:
+
+	.pcc_begin_return
+	.return $S0
+	.pcc_end_return
+.end
+
+.sub _bindec
+	.param string a
+
+	# this is the result
+	$I0 = 0
+
+	# this is the loop var
+	$I1 = 0
+
+	# this is the str length
+	length $I2, a
+
+	ord $I5, "1"
+
+_bindec_jump_1:
+
+	# get character at this position
+	$S0 = a[$I1]
+	ord $I3, $S0
+
+	if $I3 != $I5 goto _bindec_jump_2
+
+	# we found a one - shift and add
+
+	$I6 = $I2 - $I1
+	$I6 = $I6 - 1
+	$I4 = 0x0001 << $I6
+	$I0 = $I0 + $I4
+
+_bindec_jump_2:
+
+	# loop
+	$I1 = $I1 + 1
+	if $I1 < $I2 goto _bindec_jump_1
+
+
+	.pcc_begin_return
+	.return $I0
+	.pcc_end_return
+.end
+
+# function sha1_ft($t, $b, $c, $d) { 
+.sub _sha1_ft
+	.param int t
+	.param int b
+	.param int c
+	.param int d
+
+	# if($t < 20) return ($b & $c) | ((~$b) & $d); 
+
+	if t >= 20 goto _sha1_ft_jump1
+
+	$I1 = b & c
+	$I2 = ~b
+	$I2 = $I2 & d
+	$I0 = $I1 | $I2
+
+	.pcc_begin_return
+	.return $I0
+	.pcc_end_return
+
+_sha1_ft_jump1:
+
+
+	# if($t < 40) return $b ^ $c ^ $d; 
+
+	if t >= 40 goto _sha1_ft_jump2
+
+	bxor $I0, b, c
+	bxor $I0, $I0, d
+
+	.pcc_begin_return
+	.return $I0
+	.pcc_end_return
+
+_sha1_ft_jump2:
+
+
+	# if($t < 60) return ($b & $c) | ($b & $d) | ($c & $d); 
+
+	if t >= 60 goto _sha1_ft_jump3
+
+	$I1 = b & c
+	$I2 = b & d
+	$I3 = c & d
+
+	$I0 = $I1 | $I2
+	$I0 = $I0 | $I3
+
+	.pcc_begin_return
+	.return $I0
+	.pcc_end_return
+
+_sha1_ft_jump3:
+
+
+	# return $b ^ $c ^ $d; 
+
+	bxor $I0, b, c
+	bxor $I0, $I0, d
+
+	.pcc_begin_return
+	.return $I0
+	.pcc_end_return
+
+.end
+
+# function sha1_kt($t) { 
+.sub _sha1_kt
+	.param int t
+
+	# if ($t < 20) return 1518500249;
+
+	if t >= 20 goto _sha1_kt_jump1
+
+	.pcc_begin_return
+	.return 1518500249
+	.pcc_end_return
+
+_sha1_kt_jump1:
+
+
+	# if ($t < 40) return 1859775393; 
+
+	if t >= 40 goto _sha1_kt_jump2
+
+	.pcc_begin_return
+	.return  1859775393
+	.pcc_end_return
+
+_sha1_kt_jump2:
+
+
+	# if ($t < 60) return -1894007588; 
+
+	if t >= 60 goto _sha1_kt_jump3
+
+	.pcc_begin_return
+	.return -1894007588
+	.pcc_end_return
+
+_sha1_kt_jump3:
+
+
+	# return -899497514; 
+
+	.pcc_begin_return
+	.return -899497514
+	.pcc_end_return
+.end
+ 
+
+# function sha1($str) { 
+
+.sub _sha1
+	.param string str
+
+	.local pmc x
+	.local int a
+	.local int b
+	.local int c
+	.local int d
+	.local int e
+	.local int sizeof_x
+	.local int i
+	.local int j
+	.local int t
+
+	.local int olda
+	.local int oldb
+	.local int oldc
+	.local int oldd
+	.local int olde
+
+	# $x = sha1_str2blks_SHA1($str); 
+	# $a =  1732584193; 
+	# $b = -271733879; 
+	# $c = -1732584194; 
+	# $d =  271733878; 
+	# $e = -1009589776; 
+
+	x = _sha1_str2blks_SHA1(str)
+	a = 1732584193
+	b = -271733879
+	c = -1732584194
+	d = 271733878
+	e = -1009589776
+
+	# for($i = 0; $i < sizeof($x); $i += 16) { 
+
+	sizeof_x = x
+	i = 0
+_sha1_jump1:
+
+
+	# $olda = $a; 
+	# $oldb = $b; 
+	# $oldc = $c; 
+	# $oldd = $d; 
+	# $olde = $e; 
+
+	olda = a
+	oldb = b
+	oldc = c
+	oldd = d
+	olde = e
+
+	.local pmc w
+
+	new w, .PerlArray
+	w = 80
+
+
+	# for($j = 0; $j < 80; $j++) { 
+
+	j = 0
+_sha1_jump2:
+
+
+	# if($j < 16) $w[$j] = $x[$i + $j]; 
+	# else $w[$j] = sha1_rol($w[$j - 3] ^ $w[$j - 8] ^ $w[$j - 14] ^ $w[$j - 16], 1); 
+
+	if j < 16 goto _sha1_jump3
+
+	$I0 = j - 16
+	$I1 = j - 14
+	$I2 = j - 8
+	$I3 = j - 3
+
+	# $w[$j] = sha1_rol($w[$I3] ^ $w[$I2] ^ $w[$I1] ^ $w[$I0], 1);
+
+	$I7 = w[$I3]
+	$I8 = w[$I2]
+	$I9 = w[$I1]
+	$I10 = w[$I0]
+
+	bxor $I5, $I7, $I8
+	bxor $I6, $I9, $I10
+	bxor $I4, $I5, $I6
+	$I0 = _sha1_rol($I4, 1)
+	w[j] = $I0
+
+	goto _sha1_jump4
+
+_sha1_jump3:
+
+	# $w[$j] = $x[$i + $j]
+
+	$I0 = i + j
+	$I0 = x[$I0]
+	w[j] = $I0
+
+_sha1_jump4:
+
+	# $t = sha1_safe_add(sha1_safe_add(sha1_rol($a, 5), sha1_ft($j, $b, $c, $d)), sha1_safe_add(sha1_safe_add($e, $w[$j]), sha1_kt($j))); 
+
+	$I0 = _sha1_kt(j)
+	$I1 = _sha1_ft(j, b, c, d)
+	$I2 = _sha1_rol(a, 5)
+	$I3 = _sha1_safe_add($I2, $I1)
+	$I4 = w[j]
+	$I4 = _sha1_safe_add(e, $I4)
+	$I5 = _sha1_safe_add($I4, $I0)
+	t = _sha1_safe_add($I3, $I5)
+
+
+	# $e = $d; 
+	# $d = $c; 
+	# $c = sha1_rol($b, 30); 
+	# $b = $a; 
+	# $a = $t;
+
+	e = d
+	d = c
+	c = _sha1_rol(b, 30)
+	b = a
+	a = t
+
+	# end of for j
+	j = j + 1
+	if j < 80 goto _sha1_jump2
+
+	# $a = sha1_safe_add($a, $olda); 
+	# $b = sha1_safe_add($b, $oldb); 
+	# $c = sha1_safe_add($c, $oldc); 
+	# $d = sha1_safe_add($d, $oldd); 
+	# $e = sha1_safe_add($e, $olde); 
+
+	a = _sha1_safe_add(a, olda)
+	b = _sha1_safe_add(b, oldb)
+	c = _sha1_safe_add(c, oldc)
+	d = _sha1_safe_add(d, oldd)
+	e = _sha1_safe_add(e, olde)
+
+
+	# end of for i
+	i = i + 16
+	if i < sizeof_x goto _sha1_jump1
+
+
+	# return sprintf("%08lx%08lx%08lx%08lx%08lx", $a, $b, $c, $d, $e);
+
+	$P0 = new Array
+	$P0 = 5
+	$P0[0] = a
+	$P0[1] = b
+	$P0[2] = c
+	$P0[3] = d
+	$P0[4] = e
+
+	sprintf $S0, "%08lx%08lx%08lx%08lx%08lx", $P0
+
+	.pcc_begin_return
+	.return $S0
+	.pcc_end_return
+.end
+

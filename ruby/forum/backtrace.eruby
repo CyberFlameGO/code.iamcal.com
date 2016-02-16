@@ -1,0 +1,34 @@
+<%
+	r = Apache.request
+	rp = r.prev
+	backtrace_id = nil
+
+	#  uri, env, backtrace, headers_in
+	#  rp.uri, ENV.inspect, rp.error_message.to_s, rp.headers_in.to_a.inspect
+
+	r.content_type = 'text/html'
+	r.send_http_header
+
+print "<h1>Ruby Error</h1>"
+
+print "<hr>"
+print "<b>URI:</b><br>"
+print "<pre>" + rp.uri + "</pre>"
+
+print "<hr>"
+print "<b>Backtrace:</b><br>"
+print "<pre>" + rp.error_message.to_s + "</pre>"
+
+print "<hr>"
+print "<b>Environment:</b><br>"
+print "<pre>"
+ENV.each {| key, value | print "   " + key + " => " + value + "\n"}
+print "</pre>"
+
+print "<hr>"
+print "<b>Headers:</b><br>"
+print "<pre>"
+rp.headers_in.to_a.each {| key, value | print "   " + key + " => " + value + "\n"}
+print "</pre>"
+
+%>

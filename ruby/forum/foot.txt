@@ -1,0 +1,10 @@
+			</div>
+			<div class="panel">
+				&copy;2002 Cal
+			</div>
+		</td>
+	</tr>
+</table>
+
+</body>
+</html>

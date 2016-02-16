@@ -1,0 +1,55 @@
+<% 
+	Set Mail = Server.CreateObject("CDONTS.NewMail")
+
+	dim recipientName
+	dim recipientEmail
+	dim senderName
+	dim senderEmail
+	dim comments
+
+	recipientName	= Request.Form("recipientName")
+	recipientEmail	= Request.Form("recipientEmail")
+	senderName	= Request.Form("senderName")
+	senderEmail	= Request.Form("senderEmail")
+	comments	= Request.Form("comments")
+
+
+	Mail.To = recipientName & " <" & recipientEmail & ">"
+
+	Mail.From = "{siteName} on behalf of " & senderName & " <" & senderEmail & ">"
+
+	Mail.Subject = senderName & " reckons you'll like what's on this site"
+
+	Mail.Body = "Hello " & recipientName & ",
+
+    " & senderName & " (" & "senderEmail & ") came across the {siteName} site at
+    {siteURL} and figured you'd like it too!
+
+    The site is full of animations that range from twisted to just 
+    plain silly as well as a few games. It's funded entirely by 
+    donations and people buying t-shirts so if you like it please
+    offer it whatever support you can. 
+
+    " & senderName & " wrote this message for you:
+
+    " & comments & ";
+
+    ----------------------------------------------------------------------
+    If you believe you have received this email in error then please
+    contact {siteContact} and let me know!
+
+    Also, please note that I cannot be held responsible for the comments
+    added by the sender. If they're an arse then you really shouldn't have
+    given them your email address should you?
+    ----------------------------------------------------------------------"
+
+	Mail.Send
+	Set Mail=nothing
+
+	dim resp
+	resp = "Cheers for passing on the word " & senderName & ".\n\nYour recommendation has been sent to " & recipientName & " at " & recipientEmail & ". Click the button below if you want to tell someone else.";
+
+	' Respond to Flash movie!
+	response.Write("&result=Okay&response=" & resp & "&")
+
+?>

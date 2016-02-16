@@ -1,0 +1,3 @@
+[submodule "php/rfc822"]
+	path = php/rfc822
+	url = git@github.com:iamcal/rfc822.git

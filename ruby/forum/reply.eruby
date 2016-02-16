@@ -1,0 +1,41 @@
+<%
+	ERuby.import('init.txt')
+
+	topic_row = $db.query("SELECT * FROM forum_topics WHERE id=#{$cgi['topic']}").fetch_hash
+	forum_row = $db.query("SELECT * FROM forum_forums WHERE id=#{topic_row['forum_id']}").fetch_hash
+
+	if $cgi.has_key? 'done'
+		
+		time = Time.new.to_i
+		message = $db.quote($cgi['message'][0])
+
+		$db.query("INSERT INTO forum_posts (forum_id, topic_id, date_create, message) VALUES (#{forum_row['id']}, #{topic_row['id']}, #{time}, '#{message}')")
+		$db.query("UPDATE forum_topics SET date_modified=#{time} WHERE id=#{topic_row['id']}")
+
+		print $cgi.header("location" => "topic.eruby?id=#{topic_row['id']}")
+		exit
+	end
+
+	$navigation.add(forum_row['name'], "forum.eruby?id=#{forum_row['id']}")
+	$navigation.add(topic_row['title'], "topic.eruby?id=#{topic_row['id']}")
+	$navigation.add("Reply to this topic", "")
+
+	ERuby.import('head.txt')
+%>
+
+<form action="reply.eruby" method="post">
+<input type="hidden" name="topic" value="<%=$cgi['topic']%>">
+<input type="hidden" name="done" value="1">
+
+	Message:<br>
+	<textarea name="message" wrap="virtual" class="edit"></textarea><br>
+	<br>
+
+	<input type="submit" value="Post My Reply" class="button"><br>
+
+</form>
+
+
+<%
+	ERuby.import('foot.txt')
+%>

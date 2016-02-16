@@ -1,0 +1,90 @@
+to use this bot, copy and paste the below function into firebug's input box 
+and run it.
+
+make sure you're in an area with random encounters and that you have room to 
+move backwards and forwards (top left and bottom right).
+
+to start botting:
+	turn();
+
+to stop botting:
+	window.stopTurns = 1;
+
+notes:
+ * when HP reaches 50%, you will pause until you regen to 100%
+ * when you ask the bot to stop, it will wait until the current battle is over
+ * all loot will be looted, until your bag is full
+ * 'attack' should be in the first slot of your action bar
+
+----------------------------------------------------------------------------------
+
+function turn(){
+
+	// if we're in combat, attack!
+	if ($('actionbar').style.display == 'block'){
+		VANTHIA.combat.use(0);
+		setTimeout('turn();', 500);
+		return;
+	}
+
+	if (window.stopTurns){
+		window.stopTurns = 0;
+		return;
+	}
+	window.stopTurns = 0;	
+
+	// if loot is available, take it all
+	if ($('lootbar').style.display == 'block'){
+
+		var last_log = $('hud_log').childNodes[$('hud_log').childNodes.length-1];
+		if (last_log.innerHTML == 'Your backpack is full!'){
+
+			VANTHIA.ajax('combat::end');
+		}else{
+			VANTHIA.ajax("combat::lootAll");
+		}
+		setTimeout('turn();', 500);
+		return;
+	}
+
+	// wait for HP regen once we hit 50%
+	if (window.doingRegen){
+		if (parseInt($('bar_hp').style.width) < 160){
+			setTimeout('turn();', 1000);
+			return;
+		}else{
+			window.doingRegen = 0;
+		}
+	}
+	if (parseInt($('bar_hp').style.width) < 80){
+		window.doingRegen = 1;
+		setTimeout('turn();', 1000);
+		return;
+	}
+
+	// wait for movement cooldown
+	if (VANTHIA.hud.onCooldown()){
+		//console.log("can't move - waiting");
+		setTimeout('turn();', 1000);
+		return;
+	}
+
+	// move 1 step forwards
+	var x = VANTHIA.map.getPlayerX();
+	var y = VANTHIA.map.getPlayerY();
+	try {
+		if (window.lastStepForwards){
+			window.lastStepForwards = 0;
+			VANTHIA.map.cursor(x, y-1); // backwards
+		}else{
+			window.lastStepForwards = 1;
+			VANTHIA.map.cursor(x, y+1); // forwards
+		}
+		VANTHIA.map.click();
+		VANTHIA.map.click();
+	}
+	catch (e){
+	}
+
+	setTimeout('turn();', 1000);
+}

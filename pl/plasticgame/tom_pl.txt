@@ -1,0 +1,106 @@
+#!/usr/bin/perl
+
+$dict = "/usr/dict/words";
+$word_one = 'iamcal';
+$word_two = 'plasticbag';
+
+########################################################################
+
+$| = 1;
+
+@alpha = qw(a b c d e f g h i j k l m n o p q r s t u v w x y z);
+@perms = qw(abcd abdc acbd acdb adbc adcb bacd badc bcad bcda bdac bdca cabd cadb cbad cbda cdab cdba dabc dacb dbac dbca dcab dcba);
+@labels = qw(first second third fourth);
+
+&findComb($word_one,$word_two);
+
+########################################################################
+
+sub findComb(){
+	my ($worda,$wordb) = @_;
+
+	my @a = split(//,$worda);
+	my @b = split(//,$wordb);
+
+	my @onlya = ();
+	my @onlyb = ();
+	my @both = ();
+	my @none = ();
+
+	foreach $e(@alpha){
+		my $ina = 0;
+		my $inb = 0;
+		foreach $a(@a){if ($a eq $e){$ina = 1;}}
+		foreach $b(@b){if ($b eq $e){$inb = 1;}}
+		if (($ina==1) && ($inb==1)){push(@both,$e)}
+		elsif($ina==1){push(@onlya,$e)}
+		elsif($inb==1){push(@onlyb,$e)}
+		else{push(@none,$e)}
+	}
+
+	foreach $perm(@perms){
+		@elms = split(//,$perm);
+		@myelms = ();
+		my $pt = 0;
+		print "-----------------------------------------\n";
+		print "question:\n";
+		foreach $elm(@elms){
+			if ($elm eq 'a'){
+				push(@myelms,\@onlya);
+				print "\tmy $labels[$pt] is in $worda but not in $wordb\n";
+			}
+			if ($elm eq 'b'){
+				push(@myelms,\@onlyb);
+				print "\tmy $labels[$pt] is in $wordb but not in $worda\n";
+			}
+			if ($elm eq 'c'){
+				push(@myelms,\@both);
+				print "\tmy $labels[$pt] is in both $worda and $wordb\n";
+			}
+			if ($elm eq 'd'){
+				push(@myelms,\@none);
+				print "\tmy $labels[$pt] is in neither $worda nor $wordb\n";
+			}
+			$pt++;
+		}
+		print "answer(s):\n";
+		getWords($myelms[0],$myelms[1],$myelms[2],$myelms[3]);
+	}
+}
+
+########################################################################
+
+sub getWords(){
+	
+	my ($a,$b,$c,$d) = @_;
+	my @a = @{$a};
+	my @b = @{$b};
+	my @c = @{$c};
+	my @d = @{$d};
+
+	my @words = ();
+
+	foreach $a(@a){
+		foreach $b(@b){
+			foreach $c(@c){
+				foreach $d(@d){
+					push(@words,"$a$b$c$d");
+				}
+			}
+		}
+	}
+
+	open(FILEONE,$dict) or die "can't open dict: $!";
+	my $w, $word;
+	while($w = <FILEONE>){
+		chomp($w);
+		foreach $word(@words){
+			if ($w eq $word){
+				print "\t$word\n";
+			}
+		}
+	}
+	close(FILEONE);
+}
+
+########################################################################
