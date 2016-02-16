@@ -1,3 +1,6 @@
 [submodule "php/rfc822"]
 	path = php/rfc822
 	url = git@github.com:iamcal/rfc822.git
+[submodule "php/lib_filter/clone"]
+	path = php/lib_filter/clone
+	url = git@github.com:iamcal/lib_filter.git
