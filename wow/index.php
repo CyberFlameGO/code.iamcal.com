@@ -162,7 +162,11 @@ table.wow a {
 
 <h2>Saate.net</h2>
 
-<p>I created the software that powers the weekly <a href="http://www.saate.net/category/jumbles/">Jumbles</a> on <a href="http://www.saate.net/">Saate.net</a>. It's one of my favorite WoW blogs, focusing on obsessive play. Definately worth a read. And the weekly jumble challenge is fun.</p>
+<p>
+I created the software that powers the weekly <a href="http://www.saate.net/category/jumbles/">Jumbles</a> on <a href="http://www.saate.net/">Saate.net</a> 
+(now defunct). It's one of my favorite WoW blogs, focusing on obsessive play. Definately worth a read. And the weekly jumble challenge is fun.
+[<a href="https://github.com/iamcal/jumble">github repo</a>]
+</p>
 
 
 <h2>Rawr</h2>
