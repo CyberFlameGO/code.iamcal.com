@@ -1,7 +1,7 @@
 <?
 	function folder_updated($folder){
 
-		$path = "/var/www/html/code.iamcal.com".$folder;
+		$path = "/var/www/html/code.iamcal.com/www".$folder;
 		$files = array();
 
 		if ($dh = opendir($path)){
