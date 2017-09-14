@@ -35,7 +35,7 @@
 ?>
 <html>
 <head>
-<title>Cal's Code Stuff [n4]</title>
+<title>Cal's Code Stuff</title>
 <style>
 
 body {
