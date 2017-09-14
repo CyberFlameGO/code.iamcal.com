@@ -1,4 +1,0 @@
-Copying mp3s from an ipod on osx:
-
-cd /Volumes/iPod/iPod_Control/Music
-find . | grep mp3 | perl -ne 'chomp; `cp "$_" /ipod/`; print ".";'

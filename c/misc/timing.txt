@@ -1,9 +1,0 @@
-DWORD dwStart = GetTickCount();
-
-DWORD GetTimeElapsed(void){
-	return GetTickCount() - dwStart;
-}
-
-void ResetTimer(void){
-	dwStart = GetTickCount();
-}

@@ -1,2 +1,0 @@
-//timerc 0 1 /color background $!rand(0,15)
-

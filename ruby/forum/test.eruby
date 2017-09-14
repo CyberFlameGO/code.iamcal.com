@@ -1,7 +1,0 @@
-<%
-	ERuby.import('init.txt')
-
-	$cgi.simple_header()
-%>
-
-ok :)
