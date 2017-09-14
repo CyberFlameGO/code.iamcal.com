@@ -1,0 +1,200 @@
+<html><head>
+<title>The nouse programming language</title>
+</head><body>
+
+<div style="border: 3px dotted #000; padding: 1em; background-color: #ffffee;">
+	This article was copied from http://www.geocities.com/qpliu/nouse/nouse.html on 2009-08-23, to save it from the impending GeoCities shutdown.
+	The original author is Q.P.Liu
+</div>
+
+<h1>The <code>nouse</code> programming language</h1>
+<p>
+<code>nouse</code> is pronounced like noose.  It is spelled
+<code>nouse</code> because it's not useful.
+</p>
+<p>
+The inspiration for creating this language came while reading a
+description of Befunge, in which the flow of control can go left,
+right, up, or down in a torus.  So I figured it would be even more
+perverse if the flow of control depended on something like the current
+size of the stack.
+</p>
+<p>
+The <code>nouse</code> virtual machine consists of a ring of bytes and
+a stack of bytes.  Execution continues as long as the instruction ring
+is not empty, and begins at instruction 0 with an empty stack.
+</p>
+<h3>Instructions</h3>
+<p>
+Each byte in the ring is an instruction.  Each instruction is composed
+of two parts.  The byte modulus 7 specifies the instruction.  The byte
+divided by seven specifies the skip multiplier.
+</p>
+<h4>The skip</h4>
+<p>
+The skip of the instruction is the skip multiplier multiplied by size
+of the stack before the operation is executed.
+</p><blockquote>
+For example, if the instruction is <code>write 4</code>, where
+<code>write</code> is the operation, and <code>4</code> is the skip
+multiplier, and if the stack contains 3 bytes, then the skip is 12.
+</blockquote>
+The skip is used to determine the next instruction and, if necessary,
+the operand of the instruction.  The <code>read</code>,
+<code>write</code>, and <code>swap</code> operations have no operand,
+and, when the stack is empty, the <code>add</code> and
+<code>test</code> operations become noops with no operand.  When there
+is no operand, the next instruction is determined by skipping skip
+bytes after the current instruction.  When there is an operand with
+the <code>add</code>, <code>test</code>, <code>add</code> operations,
+the operand location is determined by skipping skip bytes after the
+current instruction, and the next instruction is determined by
+skipping skip bytes after the operand location.  The
+<code>cut</code>, <code>paste</code>, and <code>swap</code> operations
+change the instruction ring; the descriptions of these operations will
+specify how the operand and next instruction are determined from the
+skip.
+<p></p>
+<h4>The operations</h4>
+<p>
+The operations are
+</p><ul>
+<li>0: <code>cut</code>: Push contents of the operand location onto
+the stack, then remove the operand location from the ring.  The next
+instruction is determined by skipping skip bytes after the removed
+location.
+</li><li>1: <code>paste</code>: If the stack is not empty, the top of the
+stack popped and inserted into the ring after skipping skip bytes, in
+other words, it is inserted just before the normal operand location,
+then, the next instruction is determined by skipping skip bytes after
+the newly inserted byte.  If the stack is empty, a copy of the
+contents of the operand location is inserted.
+</li><li>2: <code>read</code>: Read one byte from the input channel, and
+push it on the top of the stack.  If at the end of file, the stack is
+not changed.
+</li><li>3: <code>write</code>: If the stack is not empty, write the top of
+the stack to the output channel.  The stack is not changed.
+</li><li>4: <code>add</code>: If the stack is not empty, replace the top of
+the stack with the sum of the top of the stack and the contents of the
+operand location.
+</li><li>5: <code>test</code>: If the stack is not empty, compare the top
+of the stack with the contents of the operand.  If they are equal, pop
+the top of the stack.
+</li><li>6: <code>swap</code>: Swap the contents of the ring and the
+stack.  The current location, (containing this <code>swap</code>
+instruction), becomes the bottom of the stack.  The bottom of the
+stack becomes the current location, and the next instruction is
+determined by skipping skip bytes.  Note that the skip is determined
+before the swap occurs, from the skip multiplier of the original
+instruction and the size of the original stack.
+</li></ul>
+<p></p>
+<h3>Syntax</h3>
+<p>
+There are two syntaxes: the assembly syntax, and the line-noise
+syntax.  The simple interpreter in OCaml and the interpreter in C
+support only the line-noise syntax.  The fancier interpreter in OCaml
+supports both syntaxes, and can convert between the two.
+</p>
+<h4>Assembly syntax</h4>
+<p>
+</p><ul>
+<li>tokens consist of unbroken strings of lowercase or digit characters
+</li><li># to end of line is a comment, acts as a separator, and is
+otherwise ignored
+</li><li>all characters other than #, lowercase characters, or digits are
+separators, and are otherwise ignored
+</li><li>each instruction is either a (decimal) number or a token with the
+name of an operation and a number
+</li><li>a numerical instruction becomes that number modulus 256 in the
+instruction ring
+</li><li>a valid operation token plus a number becomes an instruction with
+the operation set to the specified operation, and with the multiplier
+set to the number
+</li><li>invalid multipliers, those greater than 36 or 35, depending on the
+operation, are ignored
+</li><li>invalid tokens are ignored
+</li><li>operations between an operation and its multiplier are ignored
+</li><li>operations without multipliers at the end of the program are ignored
+</li></ul>
+<p></p>
+<h4>Line-noise syntax</h4>
+<p>
+</p><ul>
+<li>instructions are made of two characters, the first specifies the
+operation, and the second specifies the multiplier.
+</li><li>the operations are specified by <code>#:&lt;&gt;+?^</code>
+<!--"()<>+#:^"-->
+</li><li>multipliers of 0 to 9 are specified by <code>0</code> to
+<code>9</code>.
+</li><li>multipliers of 10 to 35 are specified by <code>a</code> to
+<code>z</code>.
+</li><li>multiplier of 36 is specified by <code>_</code>, which is ignored
+if the operation doesn't allow that multiplier
+</li><li><code>#</code> for <code>cut</code> is inspired by an ancient tty
+setting for delete
+</li><li><code>:</code> for <code>paste</code> is inspired by the cons
+operator
+</li><li><code>&lt;</code> and <code>&gt;</code> for <code>read</code> and
+<code>write</code> is inspired by sh redirects
+</li><li><code>+</code> for <code>add</code> is obvious
+</li><li><code>?</code> for <code>test</code> is obvious
+</li><li><code>^</code> for <code>swap</code> is inspired its use as xor,
+which can be used to swap bits
+</li><li>invalid characters are ignored
+</li><li>operations between an operation and its multiplier are ignored
+</li><li>operations without multipliers at the end of the program are ignored
+</li></ul>
+<p></p>
+<h2>Examples</h2>
+<p>
+</p><ul>
+<li>Implementation of cat
+  <ul>
+  <li>in assembly syntax:
+  <pre>read 0, write 6, swap 0, test 2, add 1
+  </pre>
+  </li><li>in line-noise syntax:
+  <pre>&lt;0&gt;6^0?2+1
+  </pre>
+  </li></ul>
+</li><li>Straightforward implementation of "Hello world!"
+  <ul>
+  <li>in assembly syntax
+  <pre>cut 0, 72, write 0, paste 0
+cut 0, 101, write 0, paste 0
+cut 0, 108, write 0, write 0, paste 0
+cut 0, 111, write 0, paste 0
+cut 0, 32, write 0, paste 0
+cut 0, 119, write 0, paste 0
+cut 0, 111, write 0, paste 0
+cut 0, 114, write 0, paste 0
+cut 0, 108, write 0, paste 0
+cut 0, 100, write 0, paste 0
+cut 0, 33, write 0, paste 0
+cut 0, 13, write 0, paste 0
+cut 0, 10, write 0, paste 0
+swap 0
+  </pre>
+  </li><li>in line-noise syntax
+  <pre>#0&lt;a&gt;0:0#0&gt;e&gt;0:0#0&gt;f&gt;0&gt;0:0#0^f&gt;0:0#0+4&gt;0:0#0#h&gt;0:0#0^f&gt;0:0#0&lt;g&gt;0:0#0&gt;f
+&gt;0:0#0&lt;e&gt;0:0#0?4&gt;0:0#0^1&gt;0:0#0&gt;1&gt;0:0^0
+  </pre>
+  </li></ul>
+</li><li>Another "Hello world!"
+  <pre>#0^0#0&gt;0#0+0#0:4#0&gt;0#0+0#0#1#0&gt;0#0&gt;0#0+0#0&gt;0#0&gt;0#0+0#0&lt;p#0&gt;0#0+0#0&gt;c#0
+&gt;0#0+0#0&gt;z#0&gt;0#0+0#0&gt;0#0&gt;0#0+0#0?z#0&gt;0#0+0#0&gt;z#0&gt;0#0+0#0#r#0&gt;0#0+0#0?x
+#0&gt;0#0+0#0:_#0&gt;0#0+0#0:z#0^0#2#0#0#2#e&lt;a^0
+  </pre>
+</li></ul>
+<p></p>
+<h2>Ideas for adding perversity</h2>
+<p>
+</p><ul>
+<li>More perverse ways of calculating the skip based on the current
+state, which include the stack size, the stack contents, the ring
+size, the ring contents, and even the previous skip.
+</li><li>Begin with a stack with the same contents as the ring.
+</li></ul>
+<p></p>
+</body></html>

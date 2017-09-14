@@ -1,0 +1,12 @@
+DirectoryIndex index.eruby
+
+ErrorDocument 500 /private/ruby_forum/backtrace.eruby
+
+<Files *.eruby>
+	SetHandler ruby-object
+	RubyHandler Apache::ERubyRun.instance
+</Files>
+
+<Files *.txt>
+	Deny from all
+</Files>

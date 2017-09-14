@@ -1,0 +1,2 @@
+java -classpath . MScResultsTest
+@pause

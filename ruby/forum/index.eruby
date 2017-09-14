@@ -1,0 +1,44 @@
+<%
+	ERuby.import('init.txt')
+
+	ERuby.import('head.txt')
+%>
+
+<table cellpadding="5" cellspacing="0" border="1" width="100%">
+	<tr>
+		<td><b>Topic</b></td>
+		<td><b>Topics</b></td>
+		<td><b>Posts</b></td>
+		<td><b>Latest Topic</b></td>
+	</tr>
+<%
+	result = $db.query("SELECT * FROM forum_forums ORDER BY in_order ASC")
+	result.each_hash do |row|
+		topics = $db.query("SELECT COUNT(*) FROM forum_topics WHERE forum_id=#{row['id']}").fetch_row[0].to_i
+		posts = $db.query("SELECT COUNT(*) FROM forum_posts WHERE forum_id=#{row['id']}").fetch_row[0].to_i
+%>
+	<tr>
+		<td>
+			<b><a href="forum.eruby?id=<%=row['id']%>"><%=row['name']%></a></b><br>
+			<%=row['description']%><br>
+		</td>
+		<td><%=topics%></td>
+		<td><%=posts%></td>
+<% if topics == 0 %>
+		<td>none</td>
+<%
+	else
+		subrow = $db.query("SELECT * FROM forum_topics WHERE forum_id=#{row['id']} ORDER BY date_modified DESC LIMIT 1").fetch_hash
+%>
+		<td>
+			<a href="topic.eruby?id=<%=subrow['id']%>"><%=subrow['title']%></a><br>
+			<span style="font-size: 10px;"><%=Time.at(subrow['date_create'].to_i).strftime('Updated at %H:%M on %B %d')%></span>
+		</td>
+<% end %>
+	</tr>
+<% end %>
+</table>
+
+<%
+	ERuby.import('foot.txt')
+%>

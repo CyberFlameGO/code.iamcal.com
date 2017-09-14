@@ -1,0 +1,86 @@
+#!/usr/bin/perl -w
+
+use strict;
+use IO::Socket::INET;
+use IO::Select;
+
+$|++;
+
+my $headers = [
+
+	'GET /83/246309033_1c401b15ff.jpg HTTP/1.1',
+	'Accept: text/plain, text/html, image/gif, image/jpeg, image/png, image/tv, */*',
+	'PTV-Display-Width: 640',
+	'PTV-UID: 000F216B3C26',
+	'User-Agent: Mozilla/4.0 PowerTV/3.6 (compatible; Spyglass DM 4.1; MSIE 5.0; PowerTV; DigExt)',
+	'UA-color: color0',
+	'UA-pixels: 0x0',
+	'UA-OS: PowerTV',
+	'UA-CPU: usparc',
+	'Host: static.flickr.com',
+	'Connection: keep-alive',
+	'TE: trailers',
+	'Cookie: B=drb4plp2h0vku&b=2',
+];
+
+my $pairs = [
+	['MUD VIP','storage1.flickr.vip.mud.yahoo.com'],
+	['RE2 VIP','storage1.flickr.vip.re2.yahoo.com'],
+	['MUD Direct','photocache1.flickr.mud.yahoo.com'],
+	['RE3 Direct','photocache1.flickr.re3.yahoo.com'],
+];
+
+foreach my $pair (@{$pairs}){
+
+	&try_request($pair->[0].' big ', $pair->[1], $headers, "\r\n");
+	&try_request($pair->[0].' mini', $pair->[1], ['GET /foo.gif HTTP/1.0'], "\r\n");
+
+	#&try_request($pair->[0].' big n   ', $pair->[1], $headers, "\n");
+	#&try_request($pair->[0].' mini n  ', $pair->[1], ['GET /foo.gif HTTP/1.0'], "\n");
+}
+
+
+sub try_request {
+	my ($label, $host, $lines, $cr) = @_;
+
+	my $sock = new IO::Socket::INET(PeerAddr => $host, PeerPort => 'http(80)', Proto => 'tcp');
+	my $sel = new IO::Select();
+
+	$sel->add($sock);
+
+	#$sock->blocking(0);
+
+	print "$label : ";
+
+	for my $line (@{$lines}){
+
+		print '.';
+
+		$sock->send("$line$cr");
+	}
+
+	print '(';
+	$sock->send($cr);
+	print '.)';
+
+	my @ready = $sel->can_read(1);
+
+	if (scalar @ready){
+
+		print " ok\n";
+		return;
+	}
+
+	print '(';
+	$sock->send($cr);
+	print '.)';
+
+	my @ready2 = $sel->can_read(1);
+
+	if (scalar @ready){
+
+		print " ok (3rd)\n";
+	}else{
+		print " fail\n";
+	}
+}

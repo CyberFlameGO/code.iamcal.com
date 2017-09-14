@@ -1,0 +1,66 @@
+<%
+	$cgi.simple_header()
+%>
+<html>
+<head>
+<title>mod_eruby forum</title>
+<style>
+
+body {
+	background-color: #ffffff;
+	color: #000000;
+}
+
+td, div {
+	color: #000000;
+	font-family: arial;
+	font-size: 12px;	
+}
+
+.panel {
+	background-color: #ffe0e0;
+	border: 1px #701A1A solid;
+	padding: 10px;
+	margin-bottom: 15px;
+	width: 100%;
+}
+
+input.edit {
+	width: 400px;
+}
+
+input.button {
+	background-color: #FF9999;
+	color: #701A1A;
+}
+
+textarea.edit {
+	width: 400px;
+	height: 200px;
+}
+
+</style>
+</head>
+<body>
+
+<table width="90%" align="center">
+	<tr>
+		<td>
+			<div class="panel">
+				<span style="font-weight: bold; font-size: 50px; color: #701A1A">Ruby Forum</span>
+			</div>
+
+			<div class="panel">
+				<table width="100%">
+					<tr>
+						<td align="left"><b>You are here:</b> <% $navigation.show %></td>
+<% if $user.ok == 1 %>
+						<td align="right">You are logged in as <% print $user.info["username"] %> (<a href="logout.eruby">log out</a>)</td>
+<% else %>
+						<td align="right">You are not logged in (<a href="login.eruby">log in</a> or <a href="register.eruby">register</a>)</td>
+<% end %>
+					</tr>
+				</table>
+			</div>
+
+			<div class="panel">

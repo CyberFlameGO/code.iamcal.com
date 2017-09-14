@@ -1,0 +1,28 @@
+<%
+	on error resume next
+
+	set fso = createobject("scripting.filesystemobject")
+
+	set act = fso.opentextfile(server.mappath("asp_count_nonwork.txt"))
+	counter_nonwork = clng(act.readline)
+	act.close
+
+	set act = fso.opentextfile(server.mappath("asp_count_work.txt"))
+	counter_work = clng(act.readline)
+	act.close
+
+	if ((Hour(now()) >= 9) and (Hour(now()) <= 17)) then
+		Set act = fso.CreateTextFile(server.mappath("asp_count_work.txt"), true)
+		act.WriteLine(counter_work + 1)
+		act.Close
+	else
+		Set act = fso.CreateTextFile(server.mappath("asp_count_nonwork.txt"), true)
+		act.WriteLine(counter_nonwork + 1)
+		act.Close
+	end if
+
+	total = counter_work + counter_nonwork
+	percent = (counter_work / total) * 100
+
+	Response.Write total & " people have visited this page (" & percent & "% of visits during work hours)."
+%>

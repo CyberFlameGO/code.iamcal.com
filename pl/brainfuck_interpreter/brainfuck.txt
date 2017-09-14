@@ -1,0 +1,55 @@
+#!/usr/bin/perl -w
+use strict;
+use Getopt::Long;
+
+#
+# A 'Brainfuck' Interpreter by Cal Henderson
+# Translation optimisations by Japhy at perlmonks.org
+#
+
+#################### ARGS ####################
+
+my ($fromfile,$example,$showsource);
+GetOptions ('file' => \$fromfile, 'example' => \$example, 'show' => \$showsource);
+
+if ($fromfile){
+	#load program from a file
+	open(FH,$ARGV[0]) or die "Can't open source file $ARGV[0]: $!\n";
+	$_ = join('',<FH>);
+	close(FH);
+}elsif ($example){
+	#use example program
+	$_ = '>+++++++++[<++++++++>-]<++.>++++++[<++++++++>-]<-----.--.+.>++++++++[<---------->-]<----.>+++++++++[<+++++++>-]<++.>++++[<+++>-]<+.+.+++++.>++++[<--->-]<.---.>++++[<+++>-]<+.[-]>++++++++[<++++>-]<.>+++++++[<+++++++>-]<-.>+++++++[<+++>-]<.+++++++++++++.------.[-]>++++++[<++++++>-]<----.>++++++[<+++++++>-]<--.>++++++[<++++>-]<+.++.++++++++.>++[<--->-]<.+++++++++++++.[-]++++++++++.';
+}else{
+	#explain usage
+	die "\nUsage: $0 [-s] -e|(-f filename)\n\n\t-s / --show\tShow perl source listing\n\t-e / --example\tUse example (built-in) program\n\t-f / --file\tLoad program from specified file\n\n";
+}
+
+############## THE INTERPRETER ! #############
+
+my ($p,@m);
+y/[]<>.,+-//cd;
+s/(([+-])\2*)/P$2=@{[length$1]};/g;
+s/(([<>])\2*)/Q@{[('+','-')[$2eq'<']]}=@{[length$1]};/g;
+s/\./print chrP;/g;
+s/,/P=ord getc;/g;
+s/\[/while(P){/g;
+s/]/}/g;
+s/P/\$m[Q]/g;
+s/Q/\$p/g;
+
+################### RUN IT ###################
+
+if ($showsource){
+	s/;/;\n/g;
+	s/}/}\n/g;
+	s/{/{\n/g;
+	print "===================START OF SOURCE====================\n";
+	print;
+	print "====================END OF SOURCE=====================\n\n";
+}
+
+print "===================START OF OUTPUT====================\n";
+eval;
+print$@if$@;
+print "====================END OF OUTPUT=====================\n";

@@ -1,11 +1,11 @@
-[submodule "www/php/rfc822"]
-	path = www/php/rfc822
+[submodule "php/rfc822"]
+	path = php/rfc822
 	url = git@github.com:iamcal/rfc822.git
-[submodule "www/php/lib_filter/clone"]
-	path = www/php/lib_filter/clone
+[submodule "php/lib_filter/clone"]
+	path = php/lib_filter/clone
 	url = git@github.com:iamcal/lib_filter.git
-[submodule "www/php/lib_sanitize"]
-	path = www/php/lib_sanitize
+[submodule "php/lib_sanitize"]
+	path = php/lib_sanitize
 	url = git@github.com:iamcal/lib_sanitize.git
 [submodule "shared"]
 	path = shared

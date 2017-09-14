@@ -1,0 +1,69 @@
+#!/usr/bin/perl -w
+
+#
+# a script for free-text searching in windows
+# (c)2004 Cal Henderson <cal@iamcal.com>
+#
+
+use strict;
+
+my $path = $ARGV[0];
+
+###################
+
+print "PATH: $path\n";
+print "TERM: ";
+my $term = <STDIN>;
+chomp $term;
+
+my $term_reg = quotemeta($term);
+
+if ($term =~ m!^/(.*)/$!){
+	$term_reg = $1;
+}
+
+###################
+
+my $matches = 0;
+&recurse_dir($path, '');
+print "$matches matches...\n";
+
+sub recurse_dir{
+	my ($xpath, $vpath) = @_;
+	my $dh;
+
+	opendir($dh, $xpath);
+	while(my $file = readdir($dh)){
+		if ($file ne '.' && $file ne '..'){
+			if (-d "$xpath\\$file"){
+				&recurse_dir("$xpath\\$file", "$vpath/$file");
+			}else{
+				&search_file("$xpath\\$file", "$vpath/$file");
+			}
+		}
+	}
+	closedir($dh);
+}
+
+sub search_file{
+	my ($filename, $vpath) = @_;
+
+	my ($buffer, $fh);
+
+	open($fh, $filename) or warn $!;
+	binmode($fh);
+	while(my $temp = <$fh>){
+		$buffer .= $temp;
+	}
+	close($fh);
+
+	if ($buffer =~ /$term_reg/i){
+		print "MATCH: $vpath\n";
+		$matches++;
+	}
+}
+
+###################
+
+
+$_ = <STDIN>;

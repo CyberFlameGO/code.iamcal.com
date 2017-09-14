@@ -1,0 +1,196 @@
+Read readme.txt first if you haven't yet.
+
+
+NOTE: Make backups before editing these files. Making mistakes could make your
+MT install stop working. YOU HAVE BEEN WARNED.
+
+-----------------------------------
+
+* open tmpl/cms/cfg_archives.tmpl
+
+* find this line:
+<option value="Monthly"><MT_TRANS phrase="Monthly"></option>
+* add this line below it:
+<option value="Yearly"><MT_TRANS phrase="Yearly"></option>
+
+-----------------------------------
+
+* open tmpl/cms/cfg_archives_add.tmpl
+
+* find this line:
+<option value="Monthly"><MT_TRANS phrase="Monthly"></option>
+* add this line below it:
+<option value="Yearly"><MT_TRANS phrase="Yearly"></option>
+
+-----------------------------------
+
+* open lib/MT.pm
+
+* find this line:
+use MT::Util qw( start_end_day start_end_week start_end_month
+* change it to:
+use MT::Util qw( start_end_day start_end_week start_end_month start_end_year
+
+* find this line:
+    for my $at (qw( Daily Weekly Monthly )) {
+* replace it with:
+    for my $at (qw( Daily Weekly Monthly Yearly )) {
+
+* find this line:
+    } elsif ($at eq 'Category') {
+* add this ABOVE it:
+    } elsif ($at eq 'Yearly') {
+        my($start, $end) = start_end_year($entry->created_on, $blog);
+        $ctx->{current_timestamp} = $start;
+        $ctx->{current_timestamp_end} = $end;
+        my @entries = MT::Entry->load({ created_on => [ $start, $end ],
+                                        blog_id => $blog->id,
+                                        status => MT::Entry::RELEASE() },
+                                      { range => { created_on => 1 } });
+        $ctx->stash('entries', delay(sub{\@entries}));
+
+
+-----------------------------------
+
+* open lib/MT/App/CMS.pm
+
+* find line 1314:
+                    @at = qw( Daily Weekly Monthly );
+* change to:
+                    @at = qw( Daily Weekly Monthly Yearly );
+
+* find line 2774:
+    for my $at (qw( Individual Daily Weekly Monthly Category )) {
+* change it to:
+    for my $at (qw( Individual Daily Weekly Monthly Yearly Category )) {
+
+* find line 2994:
+    Monthly => 10,
+* add this line below it:
+    Yearly => 20,
+
+* find line 4413
+            @at = qw( Daily Weekly Monthly );
+* change to:
+            @at = qw( Daily Weekly Monthly Yearly );
+
+
+-----------------------------------
+
+* open lib/MT/Entry.pm
+
+* find line 225:
+        for my $tat (qw( Individual Daily Weekly Monthly Category )) {
+* change it to:
+        for my $tat (qw( Individual Daily Weekly Monthly Yearly Category )) {
+
+-----------------------------------
+
+* open lib/MT/Util.pm
+
+* find this line:
+		 start_end_month week2ymd
+* replace with:
+		 start_end_month week2ymd start_end_year
+
+* find this line:
+sub offset_time_list { gmtime offset_time(@_) }
+* add this BEFORE it:
+sub start_end_year {
+    my($ts) = @_;
+    my($y) = unpack 'A4', $ts;
+    my $start = sprintf "%04d0101000000", $y;
+    return $start unless wantarray;
+    my $end = sprintf "%04d12%02d235959", $y, days_in(12, $y);
+    ($start, $end);
+}
+
+* find line 493:
+    'Weekly'     => 'archives/week/<$MTArchiveDate format="%Y/%m/%d"$>',
+* add this line below it:
+    'Yearly'     => 'archives/<$MTArchiveDate format="%Y"$>',
+
+* find line 617:
+    } elsif ($at eq 'Category') {
+* add this ABOVE it:
+    } elsif ($at eq 'Yearly') {
+        if ($file_tmpl) {
+            ($ctx->{current_timestamp}, $ctx->{current_timestamp_end}) =
+                start_end_year($timestamp);
+        } else {
+            my $start = start_end_year($timestamp);
+            my($year) = unpack 'A4', $start;
+	    if ($blog->old_style_archive_links) {
+		$file = sprintf("%04d", $year);
+	    } else {
+		$file = sprintf("%04d/index", $year);
+	    }
+        }
+
+* find line 659:
+                    Weekly => \&start_end_week,
+* add this above it:
+                    Yearly => \&start_end_year,
+
+-----------------------------------
+
+* open lib/MT/Template/Context.pm
+
+* find line 10:
+		 start_end_month week2ymd munge_comment archive_file_for
+* replace with:
+		 start_end_month start_end_year week2ymd munge_comment archive_file_for
+
+* find this:
+    );
+
+    sub _hdlr_archive_prev_next {
+* add this ABOVE it:
+        Yearly => {
+            group_end => sub {
+		my $stamp = ref $_[1] ? $_[1]->created_on : $_[1];
+                my $som = start_end_year($stamp, # .'DEBUG3'
+                    $_[0]->stash('blog'));
+                my $end = !$cur || $som == $cur ? 0 : 1;
+                $cur = $som;
+                $end;
+            },
+            section_title => sub {
+		my $stamp = ref $_[1] ? $_[1]->created_on : $_[1];
+                my $start =
+                    start_end_year($stamp, $_[0]->stash('blog')); # .'DEBUG4'
+                _hdlr_date($_[0], { ts => $start, 'format' => "%Y" });
+            },
+            section_timestamp => sub {
+		my $period_start = ref $_[1] ? sprintf("%04d%0101000000",
+						       @{$_[1]})
+		                             : $_[1];
+                start_end_year($period_start, $_[0]->stash('blog')); # .'DEBUG5'
+            },
+            helper => \&start_end_year,
+        },
+
+* find this:
+            unless $at eq 'Daily' || $at eq 'Weekly' || $at eq 'Monthly';
+* replace with:
+            unless $at eq 'Daily' || $at eq 'Weekly' || $at eq 'Monthly' || $at eq 'Yearly';
+
+* find this:
+		    or return $ctx->error("Couldn't get monthly archive list");
+* add this AFTER:
+	    } elsif ($at eq 'Yearly') {
+		$group_iter = MT::Entry->count_group_by({blog_id => $blog->id,
+						 status => MT::Entry::RELEASE},
+				   {group=>["extract(year from created_on)"],
+				   sort=>"extract(year from created_on) desc"})
+		    or return $ctx->error("Couldn't get yearly archive list");
+
+* find this:
+            if ($at && $at =~ /^(Daily|Monthly|Weekly)$/) {
+* replace with: 
+            if ($at && $at =~ /^(Daily|Monthly|Weekly|Yearly)$/) {
+
+
+-----------------------------------
+
+Ok, all done - back to the readme.txt file now...

@@ -1,0 +1,59 @@
+use Math::BigFloat qw(:constant);
+
+$|++;
+
+#&calc_pi(20);
+#&calc_pi(25);
+&calc_pi(30);
+
+sub ataninvint {
+	my ($x, $iter) = @_;
+
+	my $Result = Math::BigFloat->bone();
+	$Result->bdiv($x);
+
+	my $XSquared = $x * $x;
+
+	my $Divisor = 1;
+	my $Term = Math::BigFloat->new();
+	$Term->badd($Result);
+	my $TempTerm = Math::BigFloat->new();
+
+	for(1..$iter){
+
+		print '.';
+
+		$Divisor += 2;
+		$Term->bdiv($XSquared);
+		my $temp = Math::BigFloat->new();
+		$temp->badd($Term);
+		$temp->bdiv($Divisor);
+		$Result->bsub($temp);
+
+		$Divisor += 2;
+    		$Term->bdiv($XSquared);
+		my $temp2 = Math::BigFloat->new();
+		$temp2->badd($Term);
+		$temp2->bdiv($Divisor);
+		$Result->badd($temp2);
+	}
+	return $Result;
+}
+
+sub calc_pi {
+	my ($iter) = @_;
+
+	my $pi = Math::BigFloat->new();
+	$pi->badd(&ataninvint(5, $iter));
+	$pi->bmul(4);
+
+	my $x = Math::BigFloat->new();
+	$x->badd(&ataninvint(239, $iter));
+
+	$x->bneg();
+	$pi->badd($x);
+
+	$pi->bmul(4);
+
+	print "\nPI: $pi\n";
+}

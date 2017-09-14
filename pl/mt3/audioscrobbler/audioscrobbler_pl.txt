@@ -1,0 +1,42 @@
+package MT::Plugin::AudioScrobbler;
+
+# for local testing, uncomment
+#BEGIN{ push @INC, 'd:/www/mt3/lib' }
+
+use MT;
+use MT::Plugin;
+use MT::Template::Context;
+use MT::ConfigMgr;
+
+@ISA = ('MT::Plugin');
+
+sub name{
+	"AudioScrobbler";
+}
+
+sub description{
+	"To use, add this tag to your template:<br />&lt;\$MTAudioScrobbler username=\"foo\"\$&gt;<br /><br />(Replace \"foo\" with your own AudioScrobbler username)";
+}
+
+sub audioscrobbler_tag {
+	my ($content, $args) = @_;
+
+	my $username = $args->{username};
+
+
+	my $cfg = MT::ConfigMgr->instance;
+
+	my $cgi = $cfg->CGIPath;
+
+	return qq|<script language="Javascript" src="${cgi}plugins/audioscrobbler.cgi?username=$username"></script>|;
+}
+
+
+my $plugin = new MT::Plugin::AudioScrobbler();
+
+MT->add_plugin($plugin);
+
+MT::Template::Context->add_tag("AudioScrobbler", \&audioscrobbler_tag);
+
+1;
+

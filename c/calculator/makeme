@@ -1,0 +1,8 @@
+#!/bin/csh
+
+yacc -d calc.y;
+lex calc.l;
+gcc -o calc y.tab.c lex.yy.c;
+rm lex.yy.c;
+rm y.tab.c;
+rm y.tab.h;

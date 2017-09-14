@@ -1,0 +1,4884 @@
+var V_external = 'http://beta.vanthia.com/new/';
+var VANTHIA = function () {
+	var console;
+	var playerData = {};
+	var loggedIn = false;
+	var chatBox = false;
+	var sessionTime = 0;
+	var lastChatCommand = '/';
+	var commands = {
+		'/w': function (msg) {
+			try {
+				var name = msg.shift();
+				msg = msg.join(' ');
+				if (name !== '' && msg !== '') {
+					lastChatCommand = '/w ' + name + ' ';
+					VANTHIA.ajax('chat::whisper', {
+						name: name,
+						text: msg
+					});
+				}
+			} catch(Ex) {}
+		},
+		'/gmspam': function (msg) {
+			VANTHIA.ajax('gm::spam', {
+				text: msg.join(' ')
+			});
+		}
+	};
+	window.onbeforeunload = function () {
+		return "Are you sure you want to leave Vanthia?";
+	};
+	return {
+		VERSION: '&beta;.8.4',
+		start: function () {
+			$('ver').innerHTML = 'Vanthia ' + VANTHIA.VERSION + ' (MooTools ' + MooTools.version + ')';
+			VANTHIA.log.init();
+			VANTHIA.hud.updateDOM();
+			if (Browser.Engine.trident) {
+				if (Browser.Engine.version < 4) {
+					VANTHIA.log("You are using an old version of Internet Explorer, please use version 7.0 or higher", "error");
+					return;
+				} else {
+					VANTHIA.log("Internet Explorer is known for performance issues, consider playing the game with a modern browser such as Firefox, Google Chrome, Opera or Safari.", "error");
+				}
+			}
+			keybinds = {};
+			function bindKey(key, callback, loggedIn) {
+				keybinds[key] = callback;
+				if (loggedIn) {
+					keybinds[key].logged = true;
+				}
+			}
+			bindKey('enter', function () {
+				if (chatBox) {
+					VANTHIA.chatSend();
+				} else {
+					VANTHIA.chatShow();
+					return true;
+				}
+			},
+			true);
+			bindKey('/', function () {
+				if (!chatBox) {
+					VANTHIA.chatShow(lastChatCommand);
+					return true;
+				}
+			},
+			true);
+			bindKey('esc', function () {
+				$('chatmsg').value = "";
+				VANTHIA.chatSend();
+				VANTHIA.hud.target.hide();
+				VANTHIA.map.deTarget();
+				return true;
+			},
+			true);
+			bindKey('up', function () {
+				VANTHIA.log.scrollChange(-10);
+			});
+			bindKey('down', function () {
+				VANTHIA.log.scrollChange(10);
+			});
+			bindKey('tab', function () {
+				if (VANTHIA.combat.inCombat()) {
+					VANTHIA.combat.toggle();
+				} else {
+					VANTHIA.minitabs.toggle();
+				}
+				return true;
+			},
+			true);
+			['1', '2', '3', '4', '5', '6', '7', 'q', 'w', 'e', 'r', 't', 'y', 'u'].each(function (key, i) {
+				var slot = i;
+				bindKey(key, function () {
+					if (!VANTHIA.combat.inCombat() || chatBox) {
+						return false;
+					}
+					VANTHIA.combat.use(slot);
+					return true;
+				},
+				true);
+			});
+			['c', 'v', 'b'].each(function (key, i) {
+				var tab = i;
+				bindKey(key, function (event) {
+					if (event.control || event.meta || chatBox) {
+						return false;
+					}
+					VANTHIA.minitabs.goTo(tab);
+					return true;
+				},
+				true);
+			});
+			document.addEvents({
+				'keypress': function (event) {
+					event = new Event(event);
+					F = keybinds[event.key];
+					if (F !== undefined) {
+						if (!F.logged || loggedIn) {
+							return !F(event);
+						}
+					}
+				},
+				'mouseup': function () {
+					VANTHIA.hud.releaseButton();
+				}
+			});
+			VANTHIA.log("Interface ready!");
+			console = VANTHIA.hud.createConsole();
+			VANTHIA.eq.start();
+			VANTHIA.hud.hideConsole();
+			VANTHIA.minitabs.init();
+		},
+		init: function (data, mapData, players) {
+			loggedIn = true;
+			playerData = data;
+			VANTHIA.map.setPlayer(Number(data.x), Number(data.y));
+			VANTHIA.combat.init();
+			VANTHIA.hud.init(playerData);
+			VANTHIA.map.init(playerData.map, mapData, players);
+		},
+		proto: function (o) {
+			function F() {}
+			F.prototype = o;
+			return new F();
+		},
+		loggedIn: function () {
+			return loggedIn;
+		},
+		newCommand: function (cmd, callback) {
+			commands[cmd] = callback;
+		},
+		chatShow: function (msg) {
+			chatBox = true;
+			msg = msg || "";
+			var chatMsg = $('chatmsg');
+			chatMsg.blur();
+			chatMsg.value = msg;
+			$('chatbox').style.display = "block";
+			if (chatMsg.createTextRange) {
+				var range = chatMsg.createTextRange();
+				range.collapse(false);
+				range.select();
+			} else if (chatMsg.setSelectionRange) {
+				var length = chatMsg.value.length;
+				chatMsg.setSelectionRange(length, length);
+			}
+			chatMsg.focus();
+		},
+		chat: function (name) {
+			var msg = "";
+			if (name) {
+				msg = '/w ' + name + ' ';
+			}
+			VANTHIA.chatShow(msg);
+		},
+		chatSend: function () {
+			chatBox = false;
+			$('chatbox').style.display = "none";
+			var msg = $('chatmsg').value;
+			$('chatmsg').value = "";
+			if (msg !== '') {
+				if (msg.charAt(0) === '/') {
+					msg = msg.split(' ');
+					var cmd = msg.shift();
+					if (commands[cmd]) {
+						commands[cmd](msg);
+					}
+				} else {
+					VANTHIA.ajax('chat::say', {
+						text: msg
+					});
+				}
+			}
+		},
+		auth: {
+			loginSend: function () {
+				VANTHIA.log("Authentication...");
+				var flash = [$('login'), $('pass')];
+				var login = $('login').value;
+				var password = $('pass').value;
+				$('pass').value = "";
+				$('pass').blur();
+				$('login').blur();
+				$('loginform').setStyle('z-index', 30);
+				VANTHIA.hud.showConsole();
+				setTimeout(function () {
+					VANTHIA.ajax('auth::login', {
+						login: login,
+						password: password,
+						version: VANTHIA.VERSION
+					});
+				},
+				500);
+				return false;
+			},
+			reLogin: function () {
+				setTimeout(function () {
+					console.start({
+						'0': {
+							top: 169
+						}
+					});
+					setTimeout(function () {
+						$('loginform').setStyle('z-index', 1004);
+						if (!$('login').value) {
+							$('login').focus();
+						} else {
+							$('pass').focus();
+						}
+					},
+					500);
+				},
+				1000);
+			},
+			selectCharacter: function (characters) {
+				$('loginform').setStyle('display', "none");
+				$('login').blur();
+				$('pass').blur();
+				var buffor = "";
+				var lastChar = characters.length - 1;
+				var className = "character";
+				characters.each(function (character, i) {
+					if (i === lastChar) {
+						className += ' last';
+					}
+					buffor += '<div class="' + className + '" style="background-image: url(\'' + V_external + '_av/' + character.race + character.gender + character.face + '.jpg\');" onclick="VANTHIA.auth.confirmCharacter(' + character.id + ');"><span>' + character.name + '</span></div>';
+				});
+				$('selectscreen').set('html', buffor);
+				setTimeout(function () {
+					console.start({
+						'0': {
+							top: 169
+						}
+					});
+					setTimeout(function () {
+						$('selectscreen').setStyle('z-index', 1030);
+					},
+					500);
+				},
+				1000);
+			},
+			confirmCharacter: function (id) {
+				$('selectscreen').setStyle('z-index', 1);
+				VANTHIA.hud.showConsole();
+				VANTHIA.log("Initialization...");
+				setTimeout(function () {
+					VANTHIA.ajax('auth::selectChar', {
+						id: id
+					});
+				},
+				1000);
+			},
+			setSession: function (uid, sid) {
+				VANTHIA.ajax.setSession(uid, sid);
+				sessionTime = (new Date()).getTime();
+			},
+			getSessionTime: function () {
+				return sessionTime;
+			}
+		},
+		minitabs: function () {
+			var miniAnchors = $$('#hud_minitabs a');
+			var miniBG = $$('#hud_minitabs span');
+			var ticker = 0;
+			var tickOn = false;
+			var tickColor = '#ffa201';
+			var running = false;
+			var currentTab = 0;
+			miniAnchors[0].addEvent('click', function () {
+				VANTHIA.log.goGeneral();
+			});
+			miniAnchors[1].addEvent('click', function () {
+				VANTHIA.log.goCombat();
+			});
+			miniAnchors[2].addEvent('click', function () {
+				VANTHIA.eq.show();
+			});
+			miniAnchors.each(function (anchor) {
+				anchor.addEvents({
+					'mouseenter': function () {
+						anchor.setStyle('top', 0);
+						anchor.setStyle('height', 25);
+					},
+					'mouseleave': function () {
+						anchor.setStyle('top', 2);
+						anchor.setStyle('height', 23);
+					}
+				});
+			});
+			function tick() {
+				if (tickOn) {
+					tickOn = false;
+					miniBG[0].setStyle('background', '#000');
+				} else {
+					tickOn = true;
+					miniBG[0].setStyle('background', tickColor);
+				}
+				ticker = setTimeout(function () {
+					tick();
+				},
+				300);
+			}
+			return {
+				init: function () {
+					VANTHIA.tips.add(miniAnchors[0], 'General', {
+						width: 'auto',
+						toTop: true,
+						underline: 'Keyboard shortcut: <strong>C</strong>'
+					});
+					VANTHIA.tips.add(miniAnchors[1], 'Combat Log', {
+						width: 'auto',
+						toTop: true,
+						underline: 'Keyboard shortcut: <strong>V</strong>'
+					});
+					VANTHIA.tips.add(miniAnchors[2], 'Backpack', {
+						width: 'auto',
+						toTop: true,
+						underline: 'Keyboard shortcut: <strong>B</strong>'
+					});
+				},
+				tick: function () {
+					clearTimeout(ticker);
+					tickOn = false;
+					tick();
+				},
+				goBlue: function () {
+					if (!VANTHIA.log.isGeneral() || VANTHIA.eq.isOn()) {
+						tickColor = '#0bf';
+					}
+				},
+				stop: function () {
+					clearTimeout(ticker);
+					tickColor = '#ffa201';
+					tickOn = false;
+					miniBG[0].setStyle('background', '#000');
+				},
+				toggle: function () {
+					currentTab++;
+					if (currentTab > 2) {
+						currentTab = 0;
+					}
+					miniAnchors[currentTab].fireEvent('click');
+				},
+				goTo: function (i) {
+					miniAnchors[i].fireEvent('click');
+				}
+			};
+		} (),
+		pc: {
+			getName: function () {
+				return playerData.name;
+			},
+			getFace: function () {
+				return playerData.face;
+			},
+			getGender: function () {
+				if (playerData.gender === 'f') {
+					return 'female';
+				} else {
+					return 'male';
+				}
+			},
+			getClass: function () {
+				return playerData.cl;
+			},
+			getDir: function () {
+				return playerData.nswe;
+			}
+		}
+	};
+} ();
+VANTHIA.ajax = function () {
+	var session = "";
+	var userId = -1;
+	var controlCount = 0;
+	var requestTimedOut = false;
+	var actionBarChanged = false;
+	var ajaxTimer = 0;
+	var ajaxTimeout = 0;
+	var ajaxQueue = [];
+	var ajaxRequest;
+	var refreshRate = 5000;
+	var ajaxComplete = function () {
+		var request;
+		if (session !== "" && !requestTimedOut) {
+			controlCount++;
+		}
+		clearTimeout(ajaxTimeout);
+		VANTHIA.ajax.processing = false;
+		if (VANTHIA.loggedIn()) {
+			VANTHIA.hud.endCooldown();
+			if (ajaxQueue.length) {
+				request = ajaxQueue.shift();
+				VANTHIA.ajax(request.api, request.data, request.callback, request.time);
+			} else { if (refreshRate) {
+					ajaxTimer = setTimeout(function () {
+						VANTHIA.ajax('ping::pong');
+					},
+					refreshRate);
+				}
+			}
+		}
+	};
+	var fuckHeaders = {
+		'X-Requested-With': "",
+		'Accept-Language': "",
+		'Accept': "",
+		'User-Agent': "",
+		'Host': ""
+	};
+	var ajaxAPI = function (api, data, errorCallback, extraTime) {
+		ajaxRequest = new Request({
+			url: 'ajax',
+			method: 'post',
+			onComplete: ajaxComplete,
+			headers: fuckHeaders,
+			evalResponse: true
+		});
+		extraTime = extraTime || 0;
+		if (VANTHIA.ajax.processing) {
+			ajaxQueue.push({
+				api: api,
+				data: data,
+				callback: errorCallback,
+				time: extraTime
+			});
+			return false;
+		}
+		clearTimeout(ajaxTimer);
+		VANTHIA.ajax.processing = true;
+		if (VANTHIA.loggedIn()) {
+			VANTHIA.hud.preCooldown();
+		}
+		ajaxTimeout = setTimeout(function () {
+			ajaxRequest.cancel();
+			requestTimedOut = true;
+			ajaxComplete();
+			VANTHIA.log("Request timed out!", "error");
+			if (typeof(errorCallback) == "function") {
+				errorCallback();
+			}
+		},
+		5000 + extraTime);
+		if (typeof(data) !== "object") {
+			data = {};
+		}
+		data._api = api.replace("::", ".");
+		data._session = session;
+		data._userId = userId;
+		actionBarChanged = VANTHIA.sheet.actionBar.save();
+		if (actionBarChanged) {
+			data._actionBar = actionBarChanged;
+		}
+		if (requestTimedOut) {
+			requestTimedOut = false;
+		}
+		data._count = controlCount;
+		ajaxRequest.send({
+			data: data
+		});
+		ajaxRequest.xhr.onreadystatechange = ajaxRequest.onStateChange.bind(ajaxRequest);
+	};
+	ajaxAPI.kill = function () {
+		refreshRate = 0;
+		clearTimeout(ajaxTimer);
+	};
+	ajaxAPI.setSession = function (uid, sid) {
+		userId = uid;
+		session = sid;
+	};
+	ajaxAPI.combatRate = function () {
+		refreshRate = 2000;
+	};
+	ajaxAPI.normalRate = function () {
+		refreshRate = 5000;
+	};
+	ajaxAPI.processing = false;
+	return ajaxAPI;
+} ();
+VANTHIA.hud = function () {
+	var fxPool = {};
+	var console;
+	var activeButton = false;
+	var onCooldown = false;
+	var cooldownBar = {};
+	var hudMain;
+	var confirmFrame, confirmQuestion;
+	var confirmCallbackWin = function () {};
+	var confirmCallbackFail = function () {};
+	var confirmCallbackCancel = function () {};
+	return {
+		updateDOM: function () {
+			$$('a').each(function (el) {
+				el.onselectstart = function () {
+					return false;
+				};
+				el.unselectable = "on";
+				el.style.MozUserSelect = "none";
+			});
+			VANTHIA.hud.buttonize($$('a.button'));
+			$('loginform').addEvent('submit', function () {
+				return VANTHIA.auth.loginSend();
+			});
+			$('loginbut').addEvent('click', function () {
+				VANTHIA.auth.loginSend();
+			});
+			VANTHIA.tips.add($('hud_showmap').addEvent('click', function () {
+				if (VANTHIA.sheet.changed()) {
+					VANTHIA.hud.confirm('Close charcter sheet without updating?', function () {
+						VANTHIA.hud.showMap();
+					});
+				} else {
+					VANTHIA.hud.showMap();
+				}
+			}), 'Show world map', {
+				width: 'auto'
+			});
+			VANTHIA.tips.add($('hud_showchar').addEvent('click', function () {
+				VANTHIA.hud.target.endConversation();
+				VANTHIA.hud.showChar();
+			}), 'Show character sheet', {
+				width: 'auto',
+				toTop: true
+			});
+			$('hud_map').addEvent('mousedown', function () {
+				return false;
+			});
+		},
+		createConsole: function () {
+			var login = $('login');
+			var pass = $('pass');
+			var loginForm = $('loginform');
+			console = new Fx.Elements(document.getElements('#console, #startup'), {
+				duration: 500,
+				transition: Fx.Transitions.Quad.easeIn,
+				onComplete: function () {
+					if (console.showLogin) {
+						console.showLogin = false;
+						loginForm.setStyle('z-index', 1004);
+						if (!login.value) {
+							login.focus();
+						} else {
+							pass.focus();
+						}
+					}
+					if (console.startGame) {
+						console.startGame = false;
+						loginForm.style.display = "none";
+						$('startup').style.display = "none";
+						$('hud').style.visibility = "visible";
+					}
+				}
+			});
+			console.element = $('hud_bottom').getElement('span');
+			console.showLogin = true;
+			console.startGame = false;
+			return console;
+		},
+		onCooldown: function () {
+			return onCooldown;
+		},
+		buttonize: function (subject) {
+			subject.addEvent('mousedown', function () {
+				if (activeButton) {
+					activeButton.removeClass('active');
+				}
+				this.addClass('active');
+				activeButton = this;
+			});
+		},
+		releaseButton: function () {
+			if (activeButton) {
+				activeButton.removeClass('active');
+				activeButton = false;
+			}
+		},
+		showMap: function () {
+			$('hud_showmap').style.display = "none";
+			$('hud_showchar').style.display = "block";
+			fxPool.showChar.set('opacity', 0);
+			hudMain.setStyle('display', 'block');
+			VANTHIA.map.center();
+			fxPool.showChar.start('opacity', 0, 1);
+			return false;
+		},
+		showChar: function () {
+			$('hud_showmap').style.display = "block";
+			$('hud_showchar').style.display = "none";
+			fxPool.showMap.set('opacity', 0);
+			hudMain.setStyle('display', 'none');
+			fxPool.showMap.start('opacity', 0, 1);
+			return false;
+		},
+		setBars: function (newHP, maxHP, newMP, maxMP, mob1, mob2, mob3) {
+			$('string_hp').set('html', newHP + " / " + maxHP);
+			$('string_hp_s').set('html', newHP + " / " + maxHP);
+			$('string_mp').set('html', newMP + " / " + maxMP);
+			$('string_mp_s').set('html', newMP + " / " + maxMP);
+			var newHPWidth = Math.round((newHP / maxHP) * 160);
+			var oldHPWidth = $('bar_hp').value;
+			var newMPWidth = Math.round((newMP / maxMP) * 160);
+			var oldMPWidth = $('bar_mp').value;
+			var HPcolor = '#f00';
+			if ($('bar_hp').value <= newHPWidth) {
+				HPcolor = '#baff49';
+				$('bar_hp').style.width = newHPWidth + "px";
+			}
+			var MPcolor = '#016aff';
+			if ($('bar_mp').value <= newMPWidth) {
+				MPcolor = '#1dffe0';
+				$('bar_mp').style.width = newMPWidth + "px";
+			}
+			var fxOptions = {
+				'0': {
+					'background-color': [HPcolor, '#000']
+				},
+				'1': {
+					width: [oldHPWidth, newHPWidth]
+				},
+				'2': {
+					'background-color': [MPcolor, '#000']
+				},
+				'3': {
+					width: [oldMPWidth, newMPWidth]
+				}
+			};
+			if (mob1 || mob1 === 0) {
+				fxOptions['4'] = {
+					width: Math.round(mob1 * 0.16)
+				};
+				if (!mob1) {
+					VANTHIA.combat.markDead(0);
+				}
+			}
+			if (mob2 || mob2 === 0) {
+				fxOptions['5'] = {
+					width: Math.round(mob2 * 0.16)
+				};
+				if (!mob2) {
+					VANTHIA.combat.markDead(1);
+				}
+			}
+			if (mob3 || mob3 === 0) {
+				fxOptions['6'] = {
+					width: Math.round(mob3 * 0.16)
+				};
+				if (!mob3) {
+					VANTHIA.combat.markDead(2);
+				}
+			}
+			fxPool.sBars.start(fxOptions);
+			$('bar_hp').value = newHPWidth;
+			$('bar_mp').value = newMPWidth;
+			VANTHIA.combat.postToggle();
+		},
+		hideConsole: function () {
+			console.start({
+				'0': {
+					top: 169
+				}
+			});
+		},
+		showConsole: function () {
+			$('loginform').style.zIndex = '1';
+			console.start({
+				'0': {
+					top: 18
+				}
+			});
+		},
+		unlockMap: function () {
+			onCooldown = false;
+		},
+		startCooldown: function (seconds) {
+			if (!onCooldown) {
+				onCooldown = true;
+				seconds = seconds || 1;
+				fxPool.mapCooldown.options.duration = seconds * 500;
+				cooldownBar.setStyle('width', 0);
+				$('mapcooldown').style.display = "block";
+				fxPool.mapCooldown.start({
+					'width': [0, 200],
+					'background-color': ['#020', '#4f4']
+				});
+			}
+		},
+		preCooldown: function () {
+			$('mapcooldown').style.display = "block";
+			$('ajaxbar').style.display = "block";
+		},
+		endCooldown: function () {
+			if (!onCooldown) {
+				$('mapcooldown').style.display = "none";
+			}
+			$('ajaxbar').style.display = "none";
+		},
+		init: function (playerData) {
+			VANTHIA.sheet.panels.setClass(playerData.cl);
+			VANTHIA.sheet.update(playerData);
+			VANTHIA.eq.setMoney(playerData.cash);
+			$('hud_av').style.background = "url('" + V_external + "_av/" + playerData.race + playerData.gender + playerData.face + ".jpg')";
+			$('string_name').innerHTML = $('string_name_s').innerHTML = playerData.name;
+			console.startGame = true;
+			console.start({
+				'0': {
+					top: 18
+				},
+				'1': {
+					'background-color': '#000'
+				}
+			});
+			fxPool.showMap = new Fx.Tween($('hud_showmap'), {
+				link: 'cancel',
+				duration: 300
+			});
+			fxPool.showChar = new Fx.Tween($('hud_showchar'), {
+				link: 'cancel',
+				duration: 300
+			});
+			hudMain = document.getElements('#gameframe, #hud_top_box');
+			var mapCooldown = $('mapcooldown');
+			cooldownBar = mapCooldown.getElement('#bar');
+			fxPool.mapCooldown = new Fx.Morph(cooldownBar, {
+				link: 'cancel',
+				fps: 10,
+				duration: 1000,
+				transition: Fx.Transitions.linear,
+				onComplete: function () {
+					if (!VANTHIA.ajax.processing) {
+						mapCooldown.style.display = "none";
+					}
+					cooldownBar.style.width = "0px";
+					onCooldown = false;
+				}
+			});
+			var HPbar = $('bar_hp');
+			var MPBar = $('bar_mp');
+			HPbar.value = 160;
+			MPBar.value = 160;
+			var barsElements = [HPbar, HPbar.firstChild, MPBar, MPBar.firstChild].concat(document.getElements("#gameframe div.combat div.hpbar"));
+			fxPool.sBars = new Fx.Elements(barsElements, {
+				link: 'chain',
+				duration: 500,
+				transition: Fx.Transitions.Bounce.easeOut,
+				onComplete: function () {
+					MPBar.setStyle('width', MPBar.value);
+					HPbar.setStyle('width', HPbar.value);
+				}
+			});
+			VANTHIA.hud.setBars(playerData.hp, playerData.maxhp, playerData.mp, playerData.maxmp);
+			confirmFrame = $('confirm_frame');
+			confirmQuestion = $('confirm_question');
+			$('confirm_no').addEvent('click', function () {
+				confirmFrame.setStyle('display', 'none');
+				confirmCallbackFail();
+			});
+			$('confirm_yes').addEvent('click', function () {
+				confirmFrame.setStyle('display', 'none');
+				confirmCallbackWin();
+			});
+			$('confirm_cancel').addEvent('click', function () {
+				confirmFrame.setStyle('display', 'none');
+				confirmCallbackCancel();
+			});
+		},
+		confirm: function (question, win, fail) {
+			confirmCallbackWin = win;
+			confirmCallbackFail = fail ||
+			function () {};
+			confirmQuestion.innerHTML = question;
+			confirmFrame.getElements('a.button').setStyle('display', 'none');
+			confirmFrame.getElements('a.yesno').setStyle('display', 'block');
+			confirmFrame.setStyle('display', 'block');
+		},
+		infoBox: function (label) {
+			confirmQuestion.innerHTML = '<br>' + label;
+			confirmFrame.getElements('a.button').setStyle('display', 'none');
+			confirmFrame.setStyle('display', 'block');
+		},
+		cancelBox: function (label, callback) {
+			confirmCallbackCancel = callback;
+			confirmQuestion.innerHTML = label;
+			confirmFrame.getElements('a.button').setStyle('display', 'none');
+			confirmFrame.getElements('#confirm_cancel').setStyle('display', 'block');
+			confirmFrame.setStyle('display', 'block');
+		},
+		hideBox: function () {
+			confirmFrame.setStyle('display', 'none');
+		},
+		target: function () {
+			var targetFx = new Fx.Tween('target_frame', {
+				link: 'cancel'
+			});
+			var targetState = false;
+			var targetName = '';
+			var targetClass = '';
+			var targetNPC = false;
+			var conversation = false;
+			var targetX = 0;
+			var targetY = 0;
+			var targetToken = '';
+			var targetNameObj = $('target_name');
+			var targetShadowObj = $('target_name_s');
+			var targetClassObj = $('target_class');
+			var targetFrameObj = $('target_frame');
+			var playerButtons = $('player_buttons');
+			var npcButtons = $('npc_buttons');
+			var npcButtonsList = npcButtons.getElements('a.button');
+			var bossButtons = $('boss_buttons');
+			var npcTextObj = $('npctext');
+			var npcTopicsObj = $('npc_topics');
+			var conversationObj = $('hud_conversation');
+			var raceNames = ['Human', 'Orc', 'Furinari'];
+			var npcScript;
+			var dialogVars = {};
+			var dialogFunctions = {
+				"upper": function (text) {
+					return text.toUpperCase();
+				},
+				"lower": function (text) {
+					return text.toLowerCase();
+				}
+			};
+			function tooFar() {
+				var xDiff = VANTHIA.map.getPlayerX() - targetX;
+				var yDiff = VANTHIA.map.getPlayerY() - targetY;
+				if (xDiff < 0) {
+					xDiff *= -1;
+				}
+				if (yDiff < 0) {
+					yDiff *= -1;
+				}
+				if (xDiff + yDiff > 3) {
+					VANTHIA.log("You are too far!", "error");
+					return true;
+				}
+				return false;
+			}
+			function parseDialog(text) {
+				return text.replace(/\{([a-z]+[\.a-z0-9]*)\}/mg, function (full, match) {
+					match = match.split('.');
+					match[0] = dialogVars[match[0]] || match[0];
+					if (match[1]) {
+						var i;
+						for (i = 1; i < match.length; i++) {
+							if (dialogFunctions[match[i]]) {
+								match[0] = dialogFunctions[match[i]](match[0]);
+							}
+						}
+					}
+					return match[0];
+				});
+			}
+			return {
+				set: function (name, cl, face, npc, race, gender) {
+					if (targetName != name || targetNPC != npc) {
+						targetFx.set('left', -295);
+						targetNameObj.innerHTML = targetName = name;
+						targetShadowObj.innerHTML = targetName;
+						if (npc) {
+							targetX = npc.x;
+							targetY = npc.y;
+							if (npc.boss) {
+								targetToken = "boss";
+								targetClassObj.innerHTML = "Boss Encounter";
+							} else {
+								targetToken = npc.token;
+								targetClassObj.innerHTML = targetClass = cl;
+							}
+							targetFrameObj.setStyle('background-image', "url('" + V_external + "_npcs/av/" + face + "')");
+							playerButtons.style.display = 'none';
+							if (npc.boss) {
+								npcButtons.style.display = 'none';
+								if (npc.alive) {
+									bossButtons.style.display = 'block';
+								} else {
+									bossButtons.style.display = 'none';
+								}
+							} else { if (npc.trade) {
+									npcButtonsList[0].style.display = 'block';
+								} else {
+									npcButtonsList[0].style.display = 'none';
+								}
+								npcButtons.style.display = 'block';
+								bossButtons.style.display = 'none';
+							}
+						} else {
+							targetClassObj.innerHTML = targetClass = raceNames[race] + ' ' + VANTHIA.mechanics.getClassName(cl);
+							targetFrameObj.setStyle('background-image', "url('" + V_external + "_av/" + race + gender + face + ".jpg')");
+							playerButtons.style.display = 'block';
+							npcButtons.style.display = 'none';
+							bossButtons.style.display = 'none';
+						}
+						targetNPC = npc;
+						targetState = false;
+						VANTHIA.hud.target.show();
+					}
+				},
+				show: function () {
+					VANTHIA.hud.target.endConversation();
+					if (!targetState) {
+						targetState = true;
+						targetFx.start('left', -295, 0);
+					}
+				},
+				hide: function () {
+					VANTHIA.hud.target.endConversation();
+					if (targetState) {
+						targetName = '';
+						targetState = false;
+						targetFx.start('left', -295);
+					}
+					VANTHIA.map.deTarget();
+				},
+				whisper: function () {
+					VANTHIA.chat(targetName);
+				},
+				npcTalk: function () {
+					if (tooFar()) {
+						return false;
+					}
+					VANTHIA.ajax("npc::talk", {
+						npc: targetToken
+					});
+				},
+				npcTrade: function () {
+					if (tooFar()) {
+						return false;
+					}
+					VANTHIA.ajax('trade::open', {
+						npc: targetToken
+					});
+				},
+				bossFight: function () {
+					if (tooFar()) {
+						return false;
+					}
+					bossButtons.style.display = 'none';
+					VANTHIA.sound.setBossTrack();
+					VANTHIA.ajax('combat::boss');
+				},
+				startTrade: function () {
+					VANTHIA.eq.show();
+					conversationObj.setStyle('display', 'block');
+					conversationObj.className = 'trade';
+					conversation = true;
+				},
+				startConversation: function (script) {
+					dialogVars = VANTHIA.mechanics.getDialogVars();
+					VANTHIA.eq.npcClose();
+					npcScript = script;
+					conversation = true;
+					VANTHIA.hud.target.setTopic('index');
+					conversationObj.className = '';
+					conversationObj.setStyle('display', 'block');
+				},
+				setTopic: function (topic) {
+					var topicObj = npcScript[topic];
+					var response;
+					if (topicObj.call) {
+						if (topicObj.params) {
+							response = VANTHIA.mechanics.condition(topicObj.call, topicObj.params);
+						} else {
+							response = VANTHIA.mechanics.condition(topicObj.call);
+						}
+						if (topicObj.options[response]) {
+							topicObj = topicObj.options[response];
+						} else {
+							topicObj = topicObj.options.fail;
+						}
+					}
+					if (topicObj.callback) {
+						topicObj.data.npc = targetToken;
+						VANTHIA.ajax(topicObj.callback, topicObj.data);
+						VANTHIA.hud.target.endConversation();
+						return;
+					}
+					var html = parseDialog(topicObj.text);
+					if (topicObj.hint) {
+						html += '<span class="hint">' + topicObj.hint.replace(/;/g, '<br>') + '</span>';
+					}
+					npcTextObj.innerHTML = html;
+					var topicsBuffor = '';
+					var temp = '';
+					if (topicObj.topics) {
+						var i;
+						for (i = 0; i < topicObj.topics.length; i++) {
+							topicsBuffor += '<a class="npc_topic" onclick="VANTHIA.hud.target.setTopic(\'' + topicObj.topics[i].link + '\');">' + topicObj.topics[i].label + '</a>';
+						}
+					}
+					npcTopicsObj.innerHTML = topicsBuffor;
+				},
+				endConversation: function () {
+					VANTHIA.eq.npcClose();
+					if (conversation) {
+						conversation = false;
+						conversationObj.style.display = 'none';
+					}
+				},
+				trade: function () {
+					var target = targetName;
+					VANTHIA.ajax.combatRate();
+					VANTHIA.hud.cancelBox("Waiting for the other player...", function () {
+						VANTHIA.ajax.normalRate();
+						VANTHIA.ajax("trade::cancel", {
+							target: target
+						});
+					});
+					VANTHIA.ajax("trade::start", {
+						target: target
+					});
+				},
+				duel: function () {
+					var target = targetName;
+					VANTHIA.ajax.combatRate();
+					VANTHIA.hud.cancelBox("Waiting for the other player...", function () {
+						VANTHIA.ajax.normalRate();
+						VANTHIA.ajax("combat::cancelDuel", {
+							target: target
+						});
+					});
+					VANTHIA.ajax("combat::duel", {
+						target: target
+					});
+				}
+			};
+		} ()
+	};
+} ();
+VANTHIA.log = function () {
+	var hudLog, hudLogBox, slider;
+	var hudLogOn = true;
+	var elements = ['', 'Fire', 'Frost', 'Storm', 'Arcane', 'Poison'];
+	var log = function (text, color, combat) {
+		var msg = new Element('p');
+		msg.innerHTML = text;
+		var className = 't_';
+		if (combat) {
+			className = 'c_';
+		}
+		if (color) {
+			if (color.charAt(0) === '#') {
+				msg.setStyle('color', color);
+				msg.className = className;
+			} else {
+				msg.className = color + ' ' + className;
+			}
+		} else {
+			msg.className = className;
+		}
+		if (combat) {
+			hudLog.itemC++;
+			if (hudLog.itemC > 50) {
+				hudLog.removeChild(hudLog.getElement('p.c_'));
+			}
+		} else {
+			hudLog.itemN++;
+			if (hudLog.itemN > 50) {
+				hudLog.removeChild(hudLog.getElement('p.t_'));
+			}
+		}
+		hudLog.appendChild(msg);
+		if (slider.step == 88) {
+			log.scrollChange(50);
+		}
+		setTimeout(log.updateSlider, 0);
+		if (!combat && (!hudLogOn || VANTHIA.eq.isOn())) {
+			VANTHIA.minitabs.tick();
+		}
+	};
+	log.init = function () {
+		hudLog = $('hud_log');
+		hudLogBox = $('hud_logbox');
+		hudLog.itemN = 0;
+		hudLog.itemC = 0;
+		slider = new Slider('slider', 'knob', {
+			mode: 'vertical',
+			steps: 88
+		});
+		slider.addEvent('change', function (step) {
+			if (VANTHIA.log.scrollable) {
+				VANTHIA.log.scrollTo(Math.round(step / 88 * VANTHIA.log.scrollable));
+			}
+		});
+		slider.set(88);
+		hudLogBox.addEvent('mousewheel', function (event) {
+			event = new Event(event);
+			if (event.wheel > 0) {
+				VANTHIA.log.scrollChange(event.wheel * -5);
+			} else if (event.wheel < 0) {
+				VANTHIA.log.scrollChange(event.wheel * -5);
+			}
+		});
+	};
+	log.goGeneral = function () {
+		hudLogOn = true;
+		VANTHIA.eq.hide();
+		hudLog.className = '';
+		VANTHIA.log.scrollChange(hudLog.offsetHeight);
+		setTimeout(VANTHIA.log.updateSlider, 0);
+	};
+	log.goCombat = function () {
+		hudLogOn = false;
+		VANTHIA.eq.hide(true);
+		hudLog.className = 'combat';
+		VANTHIA.log.scrollChange(hudLog.offsetHeight);
+		setTimeout(VANTHIA.log.updateSlider, 0);
+	};
+	log.isGeneral = function () {
+		return hudLogOn;
+	};
+	log.updateSlider = function () {
+		log.scrollable = hudLog.offsetHeight - hudLogBox.offsetHeight;
+		if (log.scrollable > 0) {
+			slider.fireEvent('onTick', Math.round(hudLogBox.scrollTop / log.scrollable * 88));
+		} else {
+			log.scrollable = 0;
+		}
+	};
+	log.scrollTo = function (top) {
+		hudLogBox.scrollTop = top;
+	};
+	log.scrollChange = function (change) {
+		hudLogBox.scrollTop += change;
+		setTimeout(log.updateSlider, 0);
+	};
+	log.say = function (name, msg) {
+		VANTHIA.log('&lt;<a onclick="VANTHIA.chat(\'' + name + '\')" style="color:#eee">' + name + '</a>&gt;: ' + msg, '#eee');
+	};
+	log.wTo = function (name, msg) {
+		VANTHIA.log('To &lt;<a onclick="VANTHIA.chat(\'' + name + '\')" style="color:#4cf">' + name + '</a>&gt;: ' + msg, '#4cf');
+	};
+	log.wFrom = function (name, msg) {
+		VANTHIA.minitabs.goBlue();
+		VANTHIA.log('From &lt;<a onclick="VANTHIA.chat(\'' + name + '\')" style="color:#4cf">' + name + '</a>&gt;: ' + msg, '#4cf');
+	};
+	log.c = function (attacker, defender, hostile, state, damage) {
+		var style = 'atkIn';
+		if (hostile) {
+			style = 'atkOut';
+			VANTHIA.combat.setSCT(hostile - 1, state, damage, 0);
+		}
+		if (state === 3) {
+			VANTHIA.log(defender + " evades " + attacker + "'s attack!", style, true);
+		} else if (state === 2) {
+			VANTHIA.log(attacker + " crits " + defender + " for <strong>*" + damage + "*</strong> damage.", style, true);
+		} else if (state === 1) {
+			VANTHIA.log(attacker + " hits " + defender + " for <strong>" + damage + "</strong> damage.", style, true);
+		}
+	};
+	log.cm = function (attacker, defender, ability, hostile, state, damage, element) {
+		var style = 'atkIn';
+		if (hostile) {
+			style = 'atkOut';
+			VANTHIA.combat.setSCT(hostile - 1, state, damage, element);
+		}
+		if (state === 3) {
+			VANTHIA.log(defender + " evades " + attacker + "'s " + ability + "!", style, true);
+		} else if (state === 2) {
+			VANTHIA.log(attacker + "'s " + ability + " crits " + defender + " for <strong>*" + damage + "*</strong> " + elements[element] + " damage.", style, true);
+		} else if (state === 1) {
+			VANTHIA.log(attacker + "'s " + ability + " hits " + defender + " for <strong>" + damage + "</strong> " + elements[element] + " damage.", style, true);
+		}
+	};
+	log.ch = function (spell, value) {
+		VANTHIA.log('Your ' + spell + ' heals you for ' + value + '.', 'heal', true);
+	};
+	log.cr = function (spell, value) {
+		VANTHIA.log('Your ' + spell + ' restores ' + value + ' MP.', 'heal', true);
+	};
+	log.xp = function (increase, total, bonus) {
+		if (bonus) {
+			VANTHIA.log('Pack bonus: +' + increase + ' XP (total XP: ' + total + ').', 'xp', true);
+		} else {
+			VANTHIA.log('+' + increase + ' XP (total XP: ' + total + ').', 'xp', true);
+		}
+		VANTHIA.sheet.setXP(total);
+	};
+	log.cash = function (cash, total) {
+		var buffor = (cash % 100) + ' Copper';
+		cash = Math.floor(cash / 100);
+		if (cash) {
+			buffor = (cash % 100) + ' Silver ' + buffor;
+			cash = Math.floor(cash / 100);
+			if (cash) {
+				buffor = cash + ' Gold ' + buffor;
+			}
+		}
+		VANTHIA.log('Looted ' + buffor, 'cash', true);
+		VANTHIA.eq.setMoney(total);
+	};
+	log.death = function (who) {
+		VANTHIA.log(who + ' died!', 'death', true);
+		VANTHIA.combat.preToggle();
+	};
+	return log;
+} ();
+VANTHIA.mechanics = function () {
+	var playerData = {};
+	var uppedData = {};
+	var statBase = {};
+	var uppedBase = {};
+	var reqSkills = {
+		w: 'sk0',
+		a: 'sk1',
+		k: 'sk3'
+	}
+	var reqSkillNames = {
+		w: 'Weapon Mastery',
+		a: 'Armor Mastery',
+		k: 'Knowledge'
+	};
+	var Adventurer = new Class({
+		baseCount: true,
+		equips: [
+			[true, true, true, false, false, false, false, false, false, false],
+			[false, false],
+			[true, false, false]],
+		spriteMode: function (wType) {
+			return wType;
+		},
+		recalculate: function (baseCount) {
+			this.baseCount = baseCount;
+			uppedBase.power = this.countPower();
+			uppedBase.magic = this.countMagic();
+			uppedBase.attack = this.countAttack();
+			uppedBase.defense = this.countDefense();
+			uppedBase.hit = this.countHit();
+			uppedBase.evasion = this.countEvasion();
+			uppedBase.crit = this.countCrit();
+			uppedBase.tough = this.countToughness();
+			uppedBase.spellp = this.countSpellpower();
+			uppedBase.resist = this.countResistance();
+			uppedBase.overp = this.countOverpower();
+			uppedBase.will = this.countWill();
+			uppedBase.fortification = this.countFortification();
+			var stat;
+			for (stat in uppedBase) {
+				if (baseCount) {
+					statBase[stat] = uppedBase[stat];
+				} else { if (statBase[stat] !== uppedBase[stat]) {
+						VANTHIA.sheet.statUpdate(stat, uppedBase[stat] - statBase[stat] + playerData[stat]);
+					}
+				}
+			}
+		},
+		getStat: function (stat) {
+			if (this.baseCount) {
+				return Number(playerData['st_' + stat]);
+			} else {
+				return Number(playerData['st_' + stat]) + uppedData['st_' + stat];
+			}
+		},
+		getSkill: function (skill) {
+			if (this.baseCount) {
+				return Number(playerData['sk' + skill]);
+			} else {
+				return Number(playerData['sk' + skill]) + uppedData['sk' + skill];
+			}
+		},
+		getWeaponType: function () {
+			return playerData.wType;
+		},
+		getArmorType: function () {
+			return playerData.aType;
+		},
+		countPower: function () {
+			wType = this.getWeaponType();
+			if (wType == 8) {
+				return Math.round((this.getStat('str') + this.getStat('agi')) / 2);
+			} else {
+				return this.getStat('str');
+			}
+		},
+		countMagic: function () {
+			return this.getStat('int');
+		},
+		countFortification: function () {
+			return 0;
+		},
+		countAttack: function () {
+			wType = this.getWeaponType();
+			if (wType == 1) {
+				str = this.getStat('str');
+				dex = this.getStat('dex');
+				if (dex > str) {
+					statValue = dex;
+				} else {
+					statValue = str;
+				}
+			} else if (wType == 8) {
+				statValue = this.getStat('dex');
+			} else {
+				statValue = this.getStat('str');
+			}
+			return statValue + this.getSkill(0);
+		},
+		countDefense: function () {
+			return Math.round((this.getStat('con') + this.getStat('agi')) / 2) + this.getSkill(1);
+		},
+		countHit: function () {
+			return this.getStat('dex') + this.getSkill(2);
+		},
+		countEvasion: function () {
+			return this.getStat('agi');
+		},
+		countCrit: function () {
+			return this.getStat('dex');
+		},
+		countToughness: function () {
+			return this.getStat('str') + this.getSkill(2);
+		},
+		countSpellpower: function () {
+			return this.getStat('int') + this.getSkill(3);
+		},
+		countResistance: function () {
+			return Math.round((this.getStat('int') + this.getStat('agi')) / 2);
+		},
+		countOverpower: function () {
+			return this.getStat('men');
+		},
+		countWill: function () {
+			return this.getStat('men') + this.getSkill(2);
+		}
+	});
+	var Warrior = new Class({
+		Extends: Adventurer,
+		equips: [
+			[true, true, true, true, true, true, true, true, false, false],
+			[true, false],
+			[true, true, true]],
+		spriteMode: function (wType) {
+			if (wType > 1 && wType < 5) {
+				return 1;
+			} else if (wType > 4 && wType < 8) {
+				return 2;
+			}
+			return 0;
+		},
+		countAttack: function () {
+			var attack = this.parent();
+			var weapon = this.getWeaponType();
+			if (weapon > 1 && weapon < 8) {
+				return attack + this.getSkill(5);
+			}
+			return attack;
+		},
+		countDefense: function () {
+			var defense = this.parent();
+			var armor = this.getArmorType();
+			if (armor > 0) {
+				return defense + this.getSkill(5);
+			}
+			return defense;
+		},
+		countToughness: function () {
+			var toughness = this.parent();
+			var armor = this.getArmorType();
+			if (armor > 0) {
+				return toughness + this.getSkill(5);
+			}
+			return toughness;
+		}
+	});
+	var Rogue = new Class({
+		Extends: Adventurer,
+		equips: [
+			[true, true, true, false, false, false, false, false, true, false],
+			[false, false],
+			[true, true, false]],
+		spriteMode: function (wType) {
+			if (wType == 1) {
+				return 1;
+			} else if (wType == 8) {
+				return 2;
+			}
+			return 0;
+		},
+		countHit: function () {
+			return this.parent() + this.getSkill(5);
+		},
+		countEvasion: function () {
+			return this.parent() + this.getSkill(5);
+		},
+		countCrit: function () {
+			return this.parent() + this.getSkill(5);
+		}
+	});
+	var Disciple = new Class({
+		Extends: Adventurer,
+		equips: [
+			[true, true, true, false, false, false, false, false, false, true],
+			[false, true],
+			[true, false, false]],
+		spriteMode: function (wType) {
+			if (wType == 2) {
+				return 1;
+			} else if (wType == 9) {
+				return 2;
+			}
+			return 0;
+		},
+		countSpellpower: function () {
+			return this.parent() + this.getSkill(5);
+		},
+		countResistance: function () {
+			return this.parent() + this.getSkill(5);
+		},
+		countMP: function () {
+			return this.parent() + (this.getSkill(5) * 5);
+		}
+	});
+	var Knight = new Class({
+		Extends: Warrior
+	});
+	var Berserker = new Class({
+		Extends: Warrior
+	});
+	var Ranger = new Class({
+		Extends: Rogue
+	});
+	var Assassin = new Class({
+		Extends: Rogue
+	});
+	var Wizard = new Class({
+		Extends: Disciple
+	});
+	var Hexblade = new Class({
+		Extends: Disciple
+	});
+	var classInfo = [{
+		name: 'Adventurer',
+		calc: new Adventurer(),
+		tier: 0,
+		abilities: {
+			ranks: {
+				'0': [0, 1],
+				'1': 2,
+				'3': 3,
+				'6': 4,
+				'8': 5,
+				'12': 6
+			},
+			list: [{
+				name: 'Attack',
+				ico: 'attack',
+				combat: 'attack',
+				tip: function () {
+					return 'Attempts to attack an enemy, dealing up to ' + Math.round((playerData.power * playerData.atkSpeed) / 5) + ' damage.';
+				},
+				sub: function () {
+					return playerData.atkSpeed + ' turns';
+				},
+				turns: function () {
+					return playerData.atkSpeed;
+				}
+			},
+			{
+				name: 'Escape',
+				ico: 'escape',
+				combat: 'escape',
+				tip: 'Attempts to escape combat, can fail. Can\'t be used in PvP or during Boss Encounters.',
+				sub: '20 turns<br>100 turns reuse time',
+				turns: 20
+			},
+			{
+				name: 'Shock',
+				ico: 'shock',
+				combat: 'shock',
+				tip: function () {
+					return 'Attempts to strike an enemy with a shock, dealing up to ' + playerData.magic + ' Storm damage.';
+				},
+				sub: '5 turns, 4 MP cost<br>7 turns reuse time',
+				turns: 5,
+			},
+			{
+				name: 'Contemplation',
+				ico: 'contemplation',
+				combat: 'contemplate',
+				tip: function () {
+					var multi = 2;
+					if (playerData.cl > 0) {
+						multi++;
+					}
+					if (playerData.cl > 3) {
+						multi++;
+					}
+					return 'Heals self for ' + ((10 + Number(playerData.sk4)) * multi) + '.';
+				},
+				sub: function () {
+					return '5 turns, ' + (10 + Number(playerData.sk4)) + ' MP cost<br>50 turns reuse time';
+				},
+				turns: 5
+			},
+			{
+				name: 'Backfire',
+				ico: 'bfire',
+				combat: 'backfire',
+				tip: function () {
+					return 'Attempts to strike an enemy with a burst of heat, dealing up to ' + Math.round((playerData.magic * 7) / 5) + ' Fire damage.';
+				},
+				sub: '7 turns<br>Only usable after Shock',
+				turns: 4,
+				chain: 'shock'
+			},
+			{
+				name: 'Meditation',
+				ico: 'meditation',
+				combat: 'meditate',
+				tip: function () {
+					return 'Regenerates ' + (10 + Number(playerData.sk4)) + ' MP.';
+				},
+				sub: '5 turns<br>100 turns reuse time',
+				turns: 5
+			},
+			{
+				name: 'Portal',
+				ico: 'portal',
+				combat: false,
+				world: 'portal',
+				tip: 'Teleports to the closest Shrine.',
+				sub: 'Non-combat ability'
+			}]
+		}
+	},
+	{
+		name: 'Warrior',
+		calc: new Warrior(),
+		tier: 1,
+		archetype: 0,
+		focus: {
+			'STR': 1,
+			'CON': 1
+		},
+		skills: [{
+			name: 'Battle Training',
+			tip: 'Increases Attack with a Sword, Axe or Mace. Also increases Defense and Toughness in Heavy or Light Armor.'
+		},
+		{
+			name: 'Warfare ',
+			tip: 'Allows to learn new Warrior Abilites and increases their power.'
+		}],
+		abilities: {
+			ranks: {
+				'0': 0,
+				'5': [1, 2]
+			},
+			list: [{
+				name: 'Assault',
+				ico: 'assault',
+				combat: 'assault',
+				tip: function () {
+					var bonus = playerData.sk6 + 3;
+					return 'Attempts to attack an enemy, dealing up to ' + Math.round(((playerData.power + playerData.sk6) * playerData.atkSpeed) / 5) + ' damage. Additionally this ability strikes with Hit increased by ' + bonus + ' with a Sword, Crit increased by ' + bonus + ' with an Axe, or Attack increased by ' + bonus + ' a Mace.';
+				},
+				sub: function () {
+					return playerData.atkSpeed + ' turns, ' + playerData.atkSpeed + ' MP cost<br>' + (playerData.atkSpeed * 4) + ' turns reuse time';
+				},
+				turns: function () {
+					return playerData.atkSpeed;
+				}
+			},
+			{
+				name: 'Power Attack',
+				ico: 'pattack',
+				combat: 'pattack',
+				tip: function () {
+					return 'A powerful attack dealing up to ' + Math.round(((playerData.power + playerData.sk6 * 2) * playerData.atkSpeed) / 5) + ' damage at the cost of Hit penalty of ' + Math.round(playerData.sk6 / 2) + '.';
+				},
+				sub: function () {
+					return playerData.atkSpeed + ' turns, ' + playerData.atkSpeed + ' MP cost<br>Only usable after Assault<br>Requires a Great weapon';
+				},
+				turns: function () {
+					return playerData.atkSpeed;
+				},
+				chain: 'assault'
+			},
+			{
+				name: 'Shield Bash',
+				ico: 'sbash',
+				combat: 'sbash',
+				tip: function () {
+					return 'Bash an enemy with your shield, dealing up to ' + Math.round(((playerData.power + playerData.sk6 + playerData.fortification) * 7) / 5) + ' damage (scales with your shield\'s Fortification value).';
+				},
+				sub: '7 turns, 7 MP cost<br>28 turns reuse time<br>Requires a Shield',
+				turns: 7
+			}]
+		}
+	},
+	{
+		name: 'Rogue',
+		calc: new Rogue(),
+		tier: 1,
+		archetype: 0,
+		focus: {
+			'DEX': 1,
+			'AGI': 1
+		},
+		skills: [{
+			name: 'Swiftness',
+			tip: 'Increases Hit, Crit and Evasion.'
+		},
+		{
+			name: 'Combat',
+			tip: 'Allows to learn new Rogue Abilites and increases their power.'
+		}],
+		abilities: {
+			ranks: {
+				'0': 0,
+				'5': [1, 2]
+			},
+			list: [{
+				name: 'Viper Strike',
+				ico: 'viper',
+				combat: 'viper',
+				tip: function () {
+					return 'Attempts to attack an enemy, dealing up to ' + Math.round(((playerData.power + playerData.sk6) * playerData.atkSpeed) / 5) + ' Poison damage. Additionally, this ability has Attack increased by ' + (playerData.sk6 + 3) + '.';
+				},
+				sub: function () {
+					return playerData.atkSpeed + ' turns, ' + playerData.atkSpeed + ' MP cost<br>' + (playerData.atkSpeed * 4) + ' turns reuse time<br>Requires a Dagger or a Bow';
+				},
+				turns: function () {
+					return playerData.atkSpeed;
+				}
+			},
+			{
+				name: 'Snipe',
+				ico: 'snipe',
+				combat: 'snipe',
+				tip: function () {
+					return 'Aimed shot, dealing up to ' + Math.round((playerData.power * playerData.atkSpeed) / 5) + ' damage with Crit increased by ' + (playerData.sk6 + 5) + '. If this ability scores a critical hit, it will deal up to ' + Math.round(((playerData.power + playerData.sk6 * 2) * playerData.atkSpeed) / 5) + ' damage instead (before critical multiplier).';
+				},
+				sub: function () {
+					return playerData.atkSpeed + ' turns, ' + playerData.atkSpeed + ' MP cost<br>' + (playerData.atkSpeed * 4) + ' turns reuse time<br>Requires a Bow';
+				},
+				turns: function () {
+					return playerData.atkSpeed;
+				}
+			},
+			{
+				name: 'Deadly Stab',
+				ico: 'dstab',
+				combat: 'dstab',
+				tip: function () {
+					return 'Quickly stabs your enemy, dealing up to ' + Math.round(((playerData.power + playerData.sk6) * playerData.atkSpeed) / 5) + ' damage. This ability ignores ' + (playerData.sk6 + 5) + ' of enemy Evasion and completely ignores Fortification.';
+				},
+				sub: function () {
+					return playerData.atkSpeed + ' turns, ' + playerData.atkSpeed + ' MP cost<br>Only usable after Viper Strike<br>Requires a Dagger';
+				},
+				turns: function () {
+					return playerData.atkSpeed;
+				},
+				chain: 'viper'
+			}]
+		}
+	},
+	{
+		name: 'Disciple',
+		calc: new Disciple(),
+		tier: 1,
+		archetype: 0,
+		focus: {
+			'INT': 1,
+			'MEN': 1
+		},
+		skills: [{
+			name: 'Mental Training',
+			tip: 'Increases Spellpower, Resistance and increases max MP.'
+		},
+		{
+			name: 'Spellcraft',
+			tip: 'Allows to learn new Disciple Abilites and increases their power.'
+		}],
+		abilities: {
+			ranks: {
+				'0': 0,
+				'2': 1,
+				'5': 2
+			},
+			list: [{
+				name: 'Charged Weapon',
+				ico: 'charged',
+				combat: 'charged',
+				tip: function () {
+					return 'Attempts to attack an enemy with a charged weapon, dealing up to ' + Math.round(((playerData.magic + playerData.wPower) * playerData.atkSpeed) / 5) + ' Storm damage (scales with your weapon\'s Power value). Additionally, this attack has Hit increased by ' + (playerData.sk6 + 3) + '.';
+				},
+				sub: function () {
+					return playerData.atkSpeed + ' turns, 3 MP cost<br>Requires a Sword or a Staff';
+				},
+				turns: function () {
+					return playerData.atkSpeed;
+				}
+			},
+			{
+				name: 'Arcane Missile',
+				ico: 'amissile',
+				combat: 'amissile',
+				tip: function () {
+					return 'Sends a magic bolt at your enemy, dealing up to ' + Math.round(((playerData.magic + playerData.sk6) * 8) / 5) + ' Arcane damage.';
+				},
+				sub: '8 turns, 8 MP cost<br>32 turns reuse time',
+				turns: 8
+			},
+			{
+				name: 'Ring of Protection',
+				ico: 'rop',
+				combat: 'rop',
+				tip: function () {
+					return 'For the next 20 turns you are influenced by Ring of Protection, gaining temporary ' + (playerData.magic + playerData.sk6 * 2) + ' Fortification and healing self over time for ' + ((playerData.sk6 + 15) * 2) + ' total HP. You are unable to use any other abilities for the duration.';
+				},
+				sub: function () {
+					return '2 turns, ' + (15 + playerData.sk6) + ' MP cost<br>100 turns reuse time';
+				},
+				turns: 2
+			}]
+		}
+	},
+	{
+		name: 'Knight',
+		calc: new Knight(),
+		tier: 2,
+		archetype: 1,
+		focus: {
+			'STR': 2,
+			'CON': 2,
+			'DEX': 1,
+			'MEN': 1
+		},
+		skills: [{
+			name: 'Fortress',
+			tip: 'Increases Defense and Resistance in Heavy Armor. Addintionally increases hit with one-handed Swords, Axes and Maces.'
+		},
+		{
+			name: 'Aegis ',
+			tip: 'Allows to learn new Knight Abilites and increases their power.'
+		}],
+		abilities: {
+			ranks: {},
+			list: []
+		}
+	},
+	{
+		name: 'Berserker',
+		calc: new Berserker(),
+		tier: 2,
+		archetype: 1,
+		skills: [{
+			name: 'Endurance',
+			tip: 'Increases max HP and Attack with two-handed weapons.'
+		},
+		{
+			name: 'Berserking ',
+			tip: 'Allows to learn new Berserker Abilites and increases their power.'
+		}],
+		abilities: {
+			ranks: {},
+			list: []
+		}
+	},
+	{
+		name: 'Ranger',
+		calc: new Ranger(),
+		tier: 2,
+		archetype: 2,
+		focus: {
+			'DEX': 2,
+			'AGI': 2,
+			'CON': 1,
+			'MEN': 1
+		},
+		skills: [{
+			name: 'Accuracy',
+			tip: 'Increases Hit and Crit with Bows. Additionally adds extra Power to all critical attacks with a Bow.'
+		},
+		{
+			name: 'Hawkeye ',
+			tip: 'Allows to learn new Ranger Abilites and increases their power.'
+		}],
+		abilities: {
+			ranks: {},
+			list: []
+		}
+	},
+	{
+		name: 'Assassin',
+		calc: new Assassin(),
+		tier: 2,
+		archetype: 2,
+		focus: {
+			'DEX': 2,
+			'AGI': 2,
+			'STR': 1,
+			'CON': 1
+		},
+		skills: [{
+			name: 'Blur',
+			tip: 'Increases Attack and Crit with Daggers. Additionally increases Evasion.'
+		},
+		{
+			name: 'Vicousness',
+			tip: 'Allows to learn new Assassin Abilites and increases their power.'
+		}],
+		abilities: {
+			ranks: {},
+			list: []
+		}
+	},
+	{
+		name: 'Wizard',
+		calc: new Wizard(),
+		tier: 2,
+		archetype: 3,
+		focus: {
+			'INT': 2,
+			'MEN': 2,
+			'CON': 1,
+			'AGI': 1
+		},
+		skills: [{
+			name: 'Empower',
+			tip: 'Increases Defense and Resistance in Heavy Armor. Addintionally increases hit with one-handed Swords, Axes and Maces.'
+		},
+		{
+			name: 'Elemental Magic',
+			tip: 'Allows to learn new Wizard Abilites and increases their power.'
+		}],
+		abilities: {
+			ranks: {},
+			list: []
+		}
+	},
+	{
+		name: 'Hexblade',
+		calc: new Hexblade(),
+		tier: 2,
+		archetype: 3,
+		focus: {
+			'INT': 2,
+			'MEN': 2,
+			'CON': 1,
+			'DEX': 1
+		},
+		skills: [{
+			name: 'Hex Mantle',
+			tip: 'Increases Fortification and Hit.'
+		},
+		{
+			name: 'Gift ',
+			tip: 'Allows to learn new Hexblade Abilites and increases their power.'
+		}],
+		abilities: {
+			ranks: {},
+			list: []
+		}
+	}];
+	var conditions = {
+		"classChange": function (check) {
+			if (playerData.cl != check['class']) {
+				return 'fail';
+			}
+			if (playerData['st_' + check.test[0]] < 25) {
+				return 'weak';
+			}
+			if (playerData['st_' + check.test[1]] < 25) {
+				return 'weak';
+			}
+			if (playerData['sk' + check.test[2]] < 15) {
+				return 'weak';
+			}
+			if (playerData['sk' + check.test[3]] < 15) {
+				return 'weak';
+			}
+			if (playerData.cash < check.tax) {
+				return 'poor';
+			}
+			return 'fine';
+		},
+		"class": function () {
+			return classInfo[playerData.cl].name;
+		}
+	};
+	return {
+		getClass: function (id) {
+			return classInfo[id];
+		},
+		setMoney: function (cash) {
+			playerData.cash = cash;
+		},
+		getClassName: function (id) {
+			return classInfo[id].name;
+		},
+		update: function (pd) {
+			playerData = pd;
+			classInfo[pd.cl].calc.recalculate(true);
+		},
+		getSpriteClass: function (race, gender, cl, wType, nswe) {
+			race = race || playerData.race;
+			gender = gender || playerData.gender;
+			if (cl !== 0) {
+				cl = cl || playerData.cl;
+			}
+			wType = wType || playerData.wType;
+			nswe = nswe || playerData.nswe;
+			if (gender == 'm') {
+				gender = 'male';
+			} else {
+				gender = 'female';
+			}
+			if (nswe == 1 || nswe == 4) {
+				nswe = 'right';
+			} else {
+				nswe = 'left';
+			}
+			return 'player r' + race + ' cl' + cl + ' ' + gender + ' ' + nswe + ' w' + classInfo[cl].calc.spriteMode(wType);
+		},
+		getSpriteMode: function (cl, wType) {
+			return classInfo[cl].calc.spriteMode(wType);
+		},
+		condition: function (what, check) {
+			if (conditions[what]) {
+				if (check) {
+					return conditions[what](check);
+				} else {
+					return conditions[what]();
+				}
+			}
+			return false;
+		},
+		getDialogVars: function () {
+			return {
+				"name": playerData.name,
+				"class": classInfo[playerData.cl].name,
+				"gender": playerData.gender
+			};
+		},
+		createItemSubtitle: function (typestring, options) {
+			var itemlevel = options[0];
+			var skill = reqSkills[options[1]];
+			var skillName = reqSkillNames[options[1]];
+			var type = options[2] || 0;
+			var subtype = options[3] || 0;
+			return function () {
+				var subtitle = [typestring];
+				if (type < 3) {
+					if (!classInfo[playerData.cl].calc.equips[type][subtype]) {
+						subtitle[0] = '<span class="req">' + subtitle[0] + '</span>';
+					}
+				}
+				if (itemlevel > 0) {
+					subtitle[1] = itemlevel + ' ' + skillName;
+					if (playerData[skill] < itemlevel) {
+						subtitle[1] = '<span class="req">' + subtitle[1] + '</span>';
+					}
+				}
+				return subtitle.join('<br>');
+			}
+		},
+		recalculate: function (updateData) {
+			uppedData = updateData;
+			classInfo[playerData.cl].calc.recalculate(false);
+		}
+	};
+} ();
+VANTHIA.tips = function () {
+	var tooltip = $('tooltip');
+	var tipBody = $('tooltip_body');
+	var tipHeader = $('tooltip_header');
+	var tipHeaderVisible = false;
+	var border = $$('#tooltip div.border');
+	var tipContents = [];
+	var enabled = true;
+	function refitBorder() {
+		var width = tipBody.offsetWidth;
+		var height = tipBody.offsetHeight;
+		if (tipHeaderVisible) {
+			height += tipHeader.offsetHeight;
+		}
+		border[0].setStyles({
+			'width': width + 10,
+			'height': height + 10
+		});
+		border[1].setStyle('height', height + 10);
+		border[2].setStyle('width', width + 10);
+	}
+	return {
+		add: function (element, body, options) {
+			options = options || {};
+			element.tipId = tipContents.length;
+			var tip = {
+				'body': body
+			};
+			tip.corner = options.corner || false;
+			tip.toTop = options.toTop || false;
+			tip.title = options.title || false;
+			tip.width = options.width || 200;
+			tip.subTitle = options.subTitle || false;
+			tip.bigIcon = options.bigIcon || false;
+			tip.quality = options.quality || 0;
+			tip.underline = options.underline || '';
+			tipContents[element.tipId] = tip;
+			element.setStyle('cursor', 'pointer');
+			element.addEvents({
+				'mouseover': function () {
+					if (!enabled) {
+						return true;
+					}
+					var tip = tipContents[this.tipId];
+					var header = '';
+					if (tip.title) {
+						if (tip.quality) {
+							header = '<strong class="q' + tip.quality + '">';
+						} else {
+							header = '<strong>';
+						}
+						header += tip.title + '</strong>';
+						if (tip.subTitle) {
+							if (typeof(tip.subTitle) == "function") {
+								header += '<span>' + tip.subTitle() + '</span>';
+							} else {
+								header += '<span>' + tip.subTitle + '</span>';
+							}
+						}
+						if (tip.bigIcon) {
+							header = '<div style="background-image: url(\'' + tip.bigIcon + '\')" class="bigicon"><div class="frame"></div></div>' + header;
+						}
+						tipHeader.innerHTML = header;
+						tipHeader.setStyle('display', 'block');
+						tipHeaderVisible = true;
+					} else {
+						tipHeader.setStyle('display', 'none');
+						tipHeaderVisible = false;
+					}
+					if (typeof(tip.body) == 'function') {
+						if (tip.underline) {
+							tipBody.innerHTML = tip.body() + '<span class="vvalue">' + tip.underline + '</span>';
+						} else {
+							tipBody.innerHTML = tip.body();
+						}
+					} else { if (tip.underline) {
+							tipBody.innerHTML = tip.body + '<span class="vvalue">' + tip.underline + '</span>';
+						} else {
+							tipBody.innerHTML = tip.body;
+						}
+					}
+					tipBody.setStyle('width', tip.width);
+					var width = this.offsetWidth;
+					var height = this.offsetHeight;
+					var position = this.getOffsets();
+					var left = position.x + 4;
+					var top = position.y + height + 12;
+					if (tip.corner) {
+						left += width + 4;
+					}
+					if (tip.toTop) {
+						top = position.y - tooltip.offsetHeight - 12;
+					}
+					var maxLeft = 597 - tooltip.offsetWidth;
+					if (left > maxLeft) {
+						if (tip.corner) {
+							left = position.x - tooltip.offsetWidth - 8;
+						} else {
+							left = maxLeft;
+						}
+					}
+					if (left < 2) {
+						left = 2;
+					}
+					if (tip.corner) {
+						if (top + tooltip.offsetHeight > 534) {
+							top = 534 - tooltip.offsetHeight;
+						}
+					}
+					tooltip.setStyles({
+						'left': left,
+						'top': top
+					});
+					refitBorder();
+				},
+				'mouseout': function () {
+					tooltip.setStyles({
+						'left': -1000,
+						'top': -1000
+					});
+				}
+			});
+		},
+		enable: function () {
+			enabled = true;
+		},
+		disable: function () {
+			enabled = false;
+			tooltip.setStyles({
+				'left': -1000,
+				'top': -1000
+			});
+		}
+	};
+} ();
+VANTHIA.sheet = function () {
+	var showSelector = false;
+	var selector = $('sheet_selector');
+	var selectorDisplay = $('hud_changepane_text');
+	var hudSheet = $('hud_sheet');
+	var playerData = {};
+	var playerTier = 0;
+	var tempChanged = false;
+	var currentXP = 0;
+	var tempXP = 0;
+	var hudXP = $('hud_xp');
+	var hudXPcost = $('hud_xp_cost');
+	var abilityBox = $$('div.abilitiesBox');
+	var skills = [];
+	var skillsTotal = 5;
+	VANTHIA.tips.add(hudXP, 'You can spend those points on Features and Skills to make your character stronger.', {
+		title: 'Experience Points',
+		width: 250
+	});
+	$$('#hud_sheet label, #hud_sheet a.featskill').each(function (el) {
+		var tip = el.getAttribute('tip');
+		if (tip) {
+			tip = tip.split('||');
+			if (el.hasClass('featskill')) {
+				VANTHIA.tips.add(el, tip[1], {
+					corner: true,
+					title: tip[0]
+				});
+			} else {
+				VANTHIA.tips.add(el, tip[1], {
+					title: tip[0]
+				});
+			}
+		}
+	});
+	function tryXP(xp) {
+		if (xp <= tempXP) {
+			return true;
+		}
+		return false;
+	}
+	function formatInt(number) {
+		number = String(number).split('').reverse();
+		for (var i = 0; i < number.length - 1; i++) {
+			if ((i + 1) % 3 === 0) {
+				number[i] = ',' + number[i];
+			}
+		}
+		number = number.reverse().join('');
+		return number;
+	}
+	function getXP(n, type, focus) {
+		type = type || 'feat';
+		focus = focus || 0;
+		var startval = 0;
+		var power = 1.35;
+		var multi = 20;
+		if (type == 'feat') {
+			startval = 10;
+			if (focus == 1) {
+				startval = 25;
+			} else if (focus == 2) {
+				startval = 40;
+			}
+		}
+		if (focus == 1) {
+			power = 1.25;
+			multi = 1800;
+		} else if (focus == 2) {
+			power = 1.15;
+			multi = 51150;
+		}
+		return Math.round(Math.pow(power, n - startval) * multi);
+	}
+	function getUpdatedData() {
+		var updateData = {
+			'st_str': features.STR.getIncrease(),
+			'st_con': features.CON.getIncrease(),
+			'st_dex': features.DEX.getIncrease(),
+			'st_agi': features.AGI.getIncrease(),
+			'st_int': features.INT.getIncrease(),
+			'st_men': features.MEN.getIncrease()
+		};
+		var i;
+		for (i = 0; i < skillsTotal; i++) {
+			updateData['sk' + i] = skills[i].getIncrease();
+		}
+		return updateData;
+	}
+	function createField(element, type, focus) {
+		if ($type(element) === 'string') {
+			element = $(element);
+		}
+		type = type || 'feat';
+		focus = focus || 0;
+		var currentValue = 0;
+		var tempValue = 0;
+		var XP = 0;
+		function elementHover() {
+			XP = getXP(tempValue, type, focus);
+			hudXPcost.innerHTML = '- ' + formatInt(XP);
+			if (tryXP(XP)) {
+				element.addClass('green');
+				element.removeClass('red');
+				hudXPcost.removeClass('red');
+			} else {
+				element.removeClass('green');
+				element.addClass('red');
+				hudXPcost.addClass('red');
+			}
+		}
+		element.addEvents({
+			'mouseover': elementHover,
+			'click': function () {
+				if (tryXP(XP)) {
+					tempChanged = true;
+					tempXP -= XP;
+					hudXP.addClass('changed');
+					hudXP.innerHTML = formatInt(tempXP);
+					tempValue++;
+					this.addClass('upped');
+					this.innerHTML = tempValue;
+					VANTHIA.mechanics.recalculate(getUpdatedData());
+					elementHover();
+				}
+			},
+			'mouseout': function () {
+				this.removeClass('green');
+				this.removeClass('red');
+				hudXPcost.innerHTML = '';
+			}
+		});
+		return {
+			set: function (value) {
+				currentValue = value;
+				tempValue = value;
+				element.innerHTML = value;
+				element.removeClass('upped');
+			},
+			reset: function () {
+				tempValue = currentValue;
+				element.innerHTML = currentValue;
+			},
+			getIncrease: function () {
+				return (tempValue - currentValue);
+			},
+			setFocus: function (value) {
+				focus = value;
+			}
+		};
+	}
+	var features = {
+		'STR': createField('hud_str'),
+		'CON': createField('hud_con'),
+		'DEX': createField('hud_dex'),
+		'AGI': createField('hud_agi'),
+		'INT': createField('hud_int'),
+		'MEN': createField('hud_men')
+	};
+	for (var i = 0; i < skillsTotal; i++) {
+		skills[i] = createField('hud_sk' + i, 'skill');
+	}
+	var stats = {
+		'power': $('hud_power'),
+		'magic': $('hud_magic'),
+		'fortification': $('hud_fortification'),
+		'attack': $('hud_attack'),
+		'defense': $('hud_defense'),
+		'hit': $('hud_hit'),
+		'evasion': $('hud_evasion'),
+		'crit': $('hud_crit'),
+		'tough': $('hud_toughness'),
+		'spellp': $('hud_spellp'),
+		'resist': $('hud_resistance'),
+		'overp': $('hud_overpower'),
+		'will': $('hud_will')
+	};
+	VANTHIA.tips.add($('hud_reset_button').addEvent('click', function () {
+		updateSheet();
+		tempChanged = false;
+	}), 'Resets unsaved XP distribution', {
+		width: 'auto'
+	});
+	VANTHIA.tips.add($('hud_update_button').addEvent('click', function () {
+		if (!VANTHIA.ajax.processing) {
+			if (tempChanged) {
+				tempChanged = false;
+				VANTHIA.ajax('char::update', getUpdatedData());
+			}
+		}
+	}), 'Saves current XP distribution', {
+		width: 'auto'
+	});
+	var currentTier = 0;
+	var abilities = [VANTHIA.mechanics.getClass(0).abilities];
+	var lastChecked = [0, 0, 0];
+	function updateSheet() {
+		var i = 0;
+		hudXP.innerHTML = formatInt(playerData.xp);
+		hudXP.removeClass('changed');
+		tempXP = playerData.xp;
+		currentXP = playerData.xp;
+		features.STR.set(playerData.st_str);
+		features.CON.set(playerData.st_con);
+		features.DEX.set(playerData.st_dex);
+		features.AGI.set(playerData.st_agi);
+		features.INT.set(playerData.st_int);
+		features.MEN.set(playerData.st_men);
+		var stat;
+		for (stat in stats) {
+			stats[stat].removeClass('changed').innerHTML = playerData[stat];
+		}
+		for (i = 0; i < skillsTotal; i++) {
+			skills[i].set(playerData['sk' + i]);
+		}
+		var abilityList;
+		var change = false;
+		var skill;
+		var ability;
+		function abilityToActionBar() {
+			VANTHIA.sheet.actionBar.add(this.tier, this.key);
+		}
+		for (var tier = 0; tier <= currentTier; tier++) {
+			skill = 'sk' + (4 + tier * 2);
+			while (lastChecked[tier] <= playerData[skill]) {
+				abilityList = abilities[tier].ranks[lastChecked[tier] + ''];
+				if (abilityList || abilityList === 0) {
+					if ($type(abilityList) != 'array') {
+						abilityList = [abilityList];
+					}
+					for (i = 0; i < abilityList.length; i++) {
+						ability = abilities[tier].list[abilityList[i]];
+						var abilityIcon = new Element('a', {
+							'class': 'icon'
+						});
+						abilityIcon.appendChild(new Element('span'));
+						abilityIcon.setStyle('background-image', "url('" + V_external + "_abilities/" + ability.ico + ".gif')");
+						abilityIcon.tier = tier;
+						abilityIcon.key = abilityList[i];
+						if (ability.combat) {
+							VANTHIA.tips.add(abilityIcon, ability.tip, {
+								corner: true,
+								title: ability.name,
+								subTitle: ability.sub,
+								underline: 'Click to add to the action bar.'
+							});
+							abilityIcon.addEvent('click', abilityToActionBar);
+						} else {
+							VANTHIA.tips.add(abilityIcon, ability.tip, {
+								corner: true,
+								title: ability.name,
+								subTitle: ability.sub,
+								underline: 'Double-click to use.'
+							});
+							abilityIcon.world = ability.world;
+							abilityIcon.addEvent('dblclick', function () {
+								VANTHIA.ajax("world::spell", {
+									"spell": this.world
+								});
+								VANTHIA.hud.showMap();
+								return false;
+							});
+						}
+						abilityBox[tier].appendChild(abilityIcon);
+					}
+				}
+				lastChecked[tier]++;
+			}
+		}
+		VANTHIA.map.updatePlayerSprite();
+	}
+	return {
+		toggleSelector: function () {
+			if (showSelector) {
+				showSelector = false;
+				selector.setStyle('display', 'none');
+			} else {
+				showSelector = true;
+				selector.setStyle('display', 'block');
+			}
+		},
+		update: function (pd) {
+			playerData = pd;
+			VANTHIA.mechanics.update(pd);
+			updateSheet();
+		},
+		auraUpdate: function (updates) {
+			var stat;
+			for (stat in updates) {
+				playerData[stat] = updates[stat];
+			}
+			updateSheet();
+		},
+		statUpdate: function (stat, value) {
+			stats[stat].addClass('changed').innerHTML = value;
+		},
+		setXP: function (xp) {
+			playerData.xp = xp;
+			updateSheet();
+		},
+		changed: function () {
+			return tempChanged;
+		},
+		scrollTo: function (top) {
+			hudSheet.scrollTop = top;
+		},
+		scrollChange: function (change) {
+			hudSheet.scrollTop += change;
+			setTimeout(VANTHIA.sheet.panels.updateSlider, 0);
+		},
+		panels: function () {
+			var sheetPanes = $$('#hud_sheet .sheet_pane');
+			var sheetSelectors = $$('#sheet_selector a');
+			var sheetSkills = sheetPanes[0].getElement('.sheet_cont_skills');
+			var sheetAbilities = sheetPanes[0].getElement('.sheet_cont_abilities');
+			var currentPane = 0;
+			var scrollSteps = 212;
+			var selectedPane = sheetPanes[0];
+			selectedPane.setStyle('display', 'block');
+			function getScrollableHeight(pane) {
+				var height = pane.offsetHeight;
+				height -= 315;
+				if (height > 0) {
+					return height;
+				} else {
+					return 0;
+				}
+			}
+			var scrollableHeight = getScrollableHeight(selectedPane);
+			var slider = new Slider('hud_slider', 'hud_knob', {
+				mode: 'vertical',
+				steps: scrollSteps
+			});
+			slider.addEvent('change', function (step) {
+				if (scrollableHeight) {
+					VANTHIA.sheet.scrollTo(Math.round(step / scrollSteps * scrollableHeight));
+				}
+			});
+			hudSheet.addEvent('mousewheel', function (event) {
+				event = new Event(event);
+				if (event.wheel > 0) {
+					VANTHIA.sheet.scrollChange(event.wheel * -10);
+				} else if (event.wheel < 0) {
+					VANTHIA.sheet.scrollChange(event.wheel * -10);
+				}
+			});
+			$('hud_arr_up').addEvent('click', function () {
+				VANTHIA.sheet.scrollChange(-10);
+			});
+			$('hud_arr_down').addEvent('click', function () {
+				VANTHIA.sheet.scrollChange(10);
+			});
+			sheetSelectors.each(function (el, key) {
+				el.addEvent('click', function () {
+					selectorDisplay.innerHTML = this.innerHTML;
+					showSelector = false;
+					selector.setStyle('display', 'none');
+					sheetPanes.setStyle('display', 'none');
+					selectedPane = sheetPanes[key].setStyle('display', 'block');
+					scrollableHeight = getScrollableHeight(selectedPane);
+					VANTHIA.sheet.scrollTo(0);
+					slider.set(0);
+				});
+			});
+			return {
+				updateSlider: function () {
+					if (scrollableHeight) {
+						slider.fireEvent('onTick', Math.round(hudSheet.scrollTop / scrollableHeight * scrollSteps));
+					}
+				},
+				addSkill: function (skill, tip, value, tier) {
+					tier = tier || 0;
+					var skillbox = new Element('div', {
+						'class': 'skillbox',
+						'html': '<p class="label">' + skill + '</p>'
+					});
+					var field = new Element('a', {
+						'class': 'featskill',
+						'html': value
+					});
+					VANTHIA.tips.add(field, tip, {
+						corner: true,
+						title: skill
+					});
+					skillbox.appendChild(field);
+					skills[skillsTotal] = createField(field, 'skill', tier);
+					skillsTotal++;
+					skillbox.inject(sheetSkills, 'top');
+				},
+				addTier: function (className, skills, tier, focus) {
+					tier = tier || 0;
+					skills[0].value = skills[0].value || 0;
+					skills[1].value = skills[1].value || 0;
+					VANTHIA.sheet.panels.addSkill(skills[0].name, skills[0].tip, skills[0].value, tier);
+					VANTHIA.sheet.panels.addSkill(skills[1].name, skills[1].tip, skills[1].value, tier);
+					var feature;
+					for (feature in focus) {
+						features[feature].setFocus(focus[feature]);
+					}
+					var tierbox = new Element('div', {
+						'class': 'tierbox',
+						'html': '<p class="label">' + className + ' Abilities</p>'
+					});
+					abilityBox[tier] = new Element('div', {
+						'class': 'abilitiesBox'
+					});
+					tierbox.appendChild(abilityBox[tier]);
+					tierbox.inject(sheetAbilities, 'top');
+					scrollableHeight = getScrollableHeight(selectedPane);
+				},
+				setClass: function (classId) {
+					if (!classId) {
+						return;
+					}
+					var classInfo = VANTHIA.mechanics.getClass(classId);
+					if (classInfo.tier == 2) {
+						VANTHIA.sheet.panels.setClass(classInfo.archetype);
+					}
+					currentTier = classInfo.tier;
+					abilities[classInfo.tier] = classInfo.abilities;
+					VANTHIA.sheet.panels.addTier(classInfo.name, classInfo.skills, classInfo.tier, classInfo.focus);
+				}
+			};
+		} (),
+		actionBar: function () {
+			var sheetBar = $('sheet_bar');
+			var slots = [null, null, null, null, null, null, null, null, null, null, null, null, null, null];
+			var binds = ['1', '2', '3', '4', '5', '6', '7', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U'];
+			var changed = false;
+			return {
+				add: function (tier, id, position) {
+					for (var i = position || 0; i < 14; i++) {
+						if (slots[i] === null) {
+							break;
+						}
+					}
+					if (i == 14) {
+						VANTHIA.log('Action bar is full!', 'error');
+						return;
+					}
+					changed = true;
+					slots[i] = {
+						'tier': tier,
+						'id': id
+					};
+					ability = abilities[tier].list[id];
+					var icon = new Element('a', {
+						'class': 'icon',
+						'styles': {
+							'background-image': "url('" + V_external + "_abilities/" + ability.ico + ".gif')",
+							'left': 1 + 31 * i
+						}
+					});
+					icon.appendChild(new Element('span'));
+					icon.slot = i;
+					icon.addEvent('click', function () {
+						VANTHIA.combat.removeIcon(this.slot);
+						slots[this.slot] = null;
+						this.dispose();
+						VANTHIA.tips.disable();
+						VANTHIA.tips.enable();
+						changed = true;
+					});
+					VANTHIA.tips.add(icon, function () {
+						return 'Keyboard shortcut: <strong>' + binds[i] + '</strong>';
+					},
+					{
+						title: ability.name,
+						underline: 'Click to remove from the action bar.'
+					});
+					sheetBar.appendChild(icon);
+					var combatIcon = new Element('a', {
+						'class': 'icon',
+						'styles': {
+							'background-image': "url('" + V_external + "_abilities/" + ability.ico + ".gif')"
+						}
+					});
+					combatIcon.appendChild(new Element('span'));
+					combatIcon.appendChild(new Element('span', {
+						'class': 'cooldown blackout'
+					}));
+					combatIcon.appendChild(new Element('span', {
+						'class': 'cooldown shadow sh1',
+						'html': '10'
+					}));
+					combatIcon.appendChild(new Element('span', {
+						'class': 'cooldown shadow sh2',
+						'html': '10'
+					}));
+					combatIcon.appendChild(new Element('span', {
+						'class': 'cooldown shadow sh3',
+						'html': '10'
+					}));
+					combatIcon.appendChild(new Element('span', {
+						'class': 'cooldown shadow sh4',
+						'html': '10'
+					}));
+					combatIcon.appendChild(new Element('span', {
+						'class': 'cooldown label',
+						'html': '10'
+					}));
+					VANTHIA.tips.add(combatIcon, ability.tip, {
+						title: ability.name,
+						subTitle: ability.sub
+					});
+					VANTHIA.combat.insertIcon(combatIcon, ability.combat, ability.turns || 5, i, ability.chain);
+				},
+				load: function (buffor) {
+					buffor = buffor.split('|');
+					var i;
+					try {
+						for (i = 0; i < 14; i++) {
+							if (buffor[i] !== '') {
+								buffor[i] = buffor[i].split(':');
+								VANTHIA.sheet.actionBar.add(buffor[i][0], buffor[i][1], i);
+							}
+						}
+						changed = false;
+					} catch(Ex) {
+						VANTHIA.log('Error occured while loading the action bar');
+					}
+				},
+				save: function () {
+					if (!changed) {
+						return false;
+					}
+					var buffor = [null, null, null, null, null, null, null, null, null, null, null, null, null, null];
+					var i;
+					for (i = 0; i < 14; i++) {
+						if (slots[i] !== null) {
+							buffor[i] = slots[i].tier + ':' + slots[i].id;
+						}
+					}
+					changed = false;
+					return buffor.join('|');
+				}
+			};
+		} ()
+	};
+} ();
+VANTHIA.eq = function () {
+	var on = false;
+	var eq;
+	var dragFrame;
+	var game;
+	var money;
+	var gear;
+	var backpack;
+	var loot;
+	var lootBag = [];
+	var hasQualityLoot = 0;
+	var tradebox;
+	var tradeNPC = '';
+	var startDrag = false;
+	var dimensions = [false];
+	var slots = [];
+	var lastDrop = -1;
+	var ghost;
+	var tooltips = {};
+	var slotToGear = ['trash', 'head', 'neck', 'weapon', 'body', 'offhand', 'finger1', 'feet', 'finger2'];
+	var gearToSlot = {
+		trash: 0,
+		head: 1,
+		neck: 2,
+		weapon: 3,
+		body: 4,
+		offhand: 5,
+		finger1: 6,
+		feet: 7,
+		finger2: 8
+	};
+	for (var i = 0; i < 57; i++) {
+		slots[i] = false;
+	}
+	function start() {
+		gear = $$('#hud_map, #equipment em.gear');
+		backpack = $$('#equipment em.bp');
+		money = $('money');
+		game = $('game');
+		eq = $('equipment');
+		loot = $('looticons');
+		tradebox = $('tradebox');
+		dragFrame = $('dragFrame');
+		gear.each(function (el, key) {
+			dimensions[key] = {
+				"startX": el.offsetLeft - 1,
+				"endX": el.offsetLeft + 33,
+				"startY": el.offsetTop - 1,
+				"endY": el.offsetTop + 33
+			};
+		});
+		backpack.each(function (el, key) {
+			var left = 182 + (34 * (key % 12));
+			var top = 10 + (34 * Math.floor(key / 12));
+			el.setStyles({
+				'left': left,
+				'top': top
+			});
+		});
+		dimensions[9] = {
+			"startX": 181,
+			"endX": 589,
+			"startY": 9,
+			"endY": 145
+		};
+		dimensions[10] = {
+			"startX": 0,
+			"endX": 280,
+			"startY": -297,
+			"endY": -9
+		};
+		dimensions[11] = {
+			"startX": 0,
+			"endX": 608,
+			"startY": -297,
+			"endY": -9
+		};
+		VANTHIA.tips.add(money, 'Your money in Gold, Silver and Copper coins. One hundred coins of lower quality equals one coin of higher quality.', {
+			title: 'Money',
+			width: 250,
+			toTop: true
+		});
+		$('trade_sell_all').addEvent('click', function () {
+			VANTHIA.ajax('trade::sellall', {
+				npc: tradeNPC
+			});
+		});
+		VANTHIA.tips.add($('gear_mainhand'), 'Main-hand', {
+			width: 'auto',
+			toTop: true
+		});
+		VANTHIA.tips.add($('gear_offhand'), 'Off-hand', {
+			width: 'auto',
+			toTop: true
+		});
+		VANTHIA.tips.add($('gear_body'), 'Body', {
+			width: 'auto',
+			toTop: true
+		});
+		VANTHIA.tips.add($('gear_head'), 'Head', {
+			width: 'auto',
+			toTop: true
+		});
+		VANTHIA.tips.add($('gear_neck'), 'Neck', {
+			width: 'auto',
+			toTop: true
+		});
+		VANTHIA.tips.add($('gear_feet'), 'Feet', {
+			width: 'auto',
+			toTop: true
+		});
+		VANTHIA.tips.add($('gear_finger1'), 'Finger', {
+			width: 'auto',
+			toTop: true
+		});
+		VANTHIA.tips.add($('gear_finger2'), 'Finger', {
+			width: 'auto',
+			toTop: true
+		});
+	}
+	function cashToCoins(cash) {
+		var buffor = '<span class="copper">' + (cash % 100) + '</span>';
+		cash = Math.floor(cash / 100);
+		if (cash) {
+			buffor = '<span class="silver">' + (cash % 100) + '</span>' + buffor;
+			cash = Math.floor(cash / 100);
+			if (cash) {
+				buffor = '<span class="gold">' + cash + '</span>' + buffor;
+			}
+		}
+		return buffor;
+	}
+	function addTooltip(el, itemId, buy, forceSell) {
+		var tooltip = tooltips[itemId + ''];
+		var cash = tooltip.value;
+		if (!buy) {
+			cash = Math.round(cash / 3);
+		}
+		var buffor = cashToCoins(cash);
+		var toTop = true;
+		if (buy) {
+			toTop = false;
+		}
+		if (buy && !forceSell) {
+			buffor = "Buy price: " + buffor;
+		} else {
+			buffor = "Sell price: " + buffor;
+		}
+		var subtitle = false;
+		if (tooltip.subtitle) {
+			if (tooltip.itemOpt) {
+				subtitle = VANTHIA.mechanics.createItemSubtitle(tooltip.subtitle, tooltip.itemOpt);
+			} else {
+				subtitle = tooltip.subtitle;
+			}
+		}
+		VANTHIA.tips.add(el, tooltip.tooltip.replace(/;/g, '<br>'), {
+			title: tooltip.title,
+			subTitle: subtitle,
+			toTop: toTop,
+			bigIcon: V_external + "_items/" + tooltips[itemId].img + '.jpg',
+			quality: tooltip.quality,
+			underline: buffor
+		});
+	}
+	function makeDraggable(el, itemId) {
+		var dragger = new Drag(el, {
+			style: false,
+			modifiers: {
+				x: 'dragX',
+				y: 'dragY'
+			}
+		});
+		el.rollbackX = el.dragX + 0;
+		el.rollbackY = el.dragY + 0;
+		dragger.addEvents({
+			'start': function (el) {
+				VANTHIA.tips.disable();
+				ghost = el.clone();
+				ghost.setStyles({
+					'opacity': 0.5,
+					'z-index': 1015
+				});
+				game.adopt(ghost);
+				el.setStyle('z-index', 1020);
+				el.innerHTML = "<span></span>";
+			},
+			'drag': function (el) {
+				el.setStyles({
+					'left': el.dragX,
+					'top': el.dragY + 393
+				});
+				var x = el.dragX;
+				var y = el.dragY;
+				var j = 0;
+				var i = 0;
+				var inside = false;
+				var slotX, slotY;
+				for (i = 1; i < dimensions.length; i++) {
+					if (x > dimensions[i].startX && x < dimensions[i].endX && y > dimensions[i].startY && y < dimensions[i].endY) {
+						if (i < 9) {
+							if (lastDrop != i) {
+								lastDrop = i;
+								dragFrame.setStyles({
+									'left': dimensions[i].startX + 1,
+									'top': dimensions[i].startY + 394
+								});
+							}
+						} else if (i === 9) {
+							x -= 182;
+							y -= 10;
+							j = Math.floor(x / 34) + Math.floor(y / 34) * 12;
+							slotX = (j % 12) * 34;
+							slotY = Math.floor(j / 12) * 34;
+							if (lastDrop - 9 !== j) {
+								dragFrame.setStyles({
+									'left': slotX + 182,
+									'top': slotY + 403
+								});
+								lastDrop = j + 9;
+							}
+						} else if (i === 10) {
+							if (VANTHIA.eq.trade.on()) {
+								lastDrop = "trade";
+							} else if (tradeNPC !== '') {
+								lastDrop = "vendor";
+							} else {
+								lastDrop = 0;
+							}
+						} else {
+							lastDrop = 0;
+						}
+						inside = true;
+						return;
+					}
+				}
+				if (!inside) {
+					dragFrame.setStyles({
+						'left': -32,
+						'top': -32
+					});
+					lastDrop = -1;
+				}
+			},
+			'complete': function (el) {
+				el.dragX = el.rollbackX;
+				el.dragY = el.rollbackY;
+				el.setStyles({
+					'left': el.dragX,
+					'top': el.dragY + 393
+				});
+				dragFrame.setStyles({
+					'left': -32,
+					'top': -32
+				});
+				ghost.dispose();
+				el.setStyle('z-index', 1018);
+				el.innerHTML = "";
+				if (lastDrop === "vendor") {
+					el.fireEvent('dblclick');
+				} else if (lastDrop === "trade") {
+					VANTHIA.eq.trade.addItem(el.slot, tooltips[itemId + ''], itemId);
+				} else if (lastDrop != -1) {
+					if (lastDrop < 9) {
+						if (el.slot != lastDrop + 48) {
+							var targetSlot = slotToGear[lastDrop];
+							if (el.slot < 48) {
+								if (targetSlot == 'trash') {
+									var fromSlot = el.slot;
+									var tooltip = tooltips[itemId + ''];
+									VANTHIA.hud.confirm('Really destroy <strong class="q' + tooltip.quality + '">' + tooltip.title + '</strong>?', function () {
+										VANTHIA.ajax('eq::switch', {
+											from: fromSlot,
+											to: 'trash'
+										});
+									});
+								} else {
+									VANTHIA.ajax('eq::switch', {
+										from: el.slot,
+										to: targetSlot
+									});
+								}
+							} else { if (targetSlot == 'trash') {
+									VANTHIA.log("Can't destroy equipped items!", 'error');
+								} else {
+									VANTHIA.ajax('eq::switch', {
+										from: slotToGear[el.slot - 48],
+										to: targetSlot
+									});
+								}
+							}
+						}
+					} else { if (el.slot != lastDrop - 9) {
+							if (el.slot < 48) {
+								VANTHIA.ajax('eq::switch', {
+									from: el.slot,
+									to: lastDrop - 9
+								});
+							} else {
+								VANTHIA.ajax('eq::switch', {
+									from: slotToGear[el.slot - 48],
+									to: lastDrop - 9
+								});
+							}
+						}
+					}
+				}
+				VANTHIA.tips.enable();
+			}
+		});
+		dragger.attach();
+		addTooltip(el, itemId);
+	}
+	return {
+		dragged: false,
+		start: function () {
+			start();
+		},
+		init: function (data) {
+			var i;
+			var value;
+			var slot;
+			for (i = 1; i < 9; i++) {
+				slot = slotToGear[i];
+				if (data[slot] > 0) {
+					VANTHIA.eq.putItem(slot, data[slot]);
+				}
+			}
+			var backpack = data.backpack.split(',');
+			for (i = 0; i < 48; i++) {
+				value = Number(backpack[i]);
+				if (value > 0) {
+					VANTHIA.eq.putItem(i, value);
+				}
+			}
+			this.trade.init();
+		},
+		addTips: function (data) {
+			var i;
+			for (i in data) {
+				tooltips[i] = data[i];
+			}
+		},
+		setLoot: function (data) {
+			hasQualityLoot = 0;
+			lootBag = [];
+			loot.empty();
+			var i, icon;
+			function lootClick() {
+				VANTHIA.ajax('combat::loot', {
+					item: this.lootSlot
+				});
+			}
+			for (i = 0; i < data.length; i++) {
+				if (Number(tooltips[data[i]].quality)) {
+					hasQualityLoot++;
+				}
+				icon = new Element('a', {
+					'class': 'icon',
+					'styles': {
+						'background-image': "url('" + V_external + "_items/" + tooltips[data[i]].img + ".gif')"
+					}
+				});
+				icon.lootSlot = i + 0;
+				icon.itemId = data[i] + 0;
+				icon.onclick = lootClick;
+				addTooltip(icon, data[i]);
+				lootBag[i] = icon;
+				loot.appendChild(icon);
+			}
+		},
+		lootItem: function (lootSlot, itemId, slot) {
+			if (Number(tooltips[itemId].quality)) {
+				hasQualityLoot--;
+			}
+			lootBag[lootSlot].fireEvent('mouseout');
+			lootBag[lootSlot].dispose();
+			VANTHIA.eq.putItem(slot, itemId);
+		},
+		hasLoot: function () {
+			if (hasQualityLoot) {
+				return true;
+			}
+			return false;
+		},
+		npcTrade: function (data, npc) {
+			tradeNPC = npc;
+			tradebox.empty();
+			var i, icon;
+			function tradeClick() {
+				var tooltip = tooltips[this.itemId + ''];
+				var storeSlot = this.storeSlot;
+				VANTHIA.hud.confirm('Buy <strong class="q' + tooltip.quality + '">' + tooltip.title + '</strong> for ' + cashToCoins(tooltip.value) + '?', function () {
+					VANTHIA.ajax('trade::buy', {
+						item: storeSlot,
+						npc: npc
+					});
+				});
+			}
+			for (i = 0; i < data.length; i++) {
+				icon = new Element('a', {
+					'class': 'icon',
+					'styles': {
+						'background-image': "url('" + V_external + "_items/" + tooltips[data[i]].img + ".gif')"
+					}
+				});
+				icon.storeSlot = i + 0;
+				icon.itemId = data[i];
+				icon.onclick = tradeClick;
+				addTooltip(icon, data[i], true);
+				tradebox.appendChild(icon);
+			}
+			VANTHIA.hud.target.startTrade();
+		},
+		npcClose: function () {
+			tradeNPC = '';
+		},
+		show: function () {
+			on = true;
+			game.addClass('showItems');
+			eq.setStyle('visibility', 'visible');
+		},
+		hide: function (combatLog) {
+			on = false;
+			eq.setStyle('visibility', 'hidden');
+			game.removeClass('showItems');
+			if (!combatLog) {
+				VANTHIA.minitabs.stop();
+			}
+		},
+		toggle: function () {
+			if (on) {
+				on = false;
+				eq.setStyle('visibility', 'hidden');
+				VANTHIA.minitabs.stop();
+				game.removeClass('showItems');
+			} else {
+				game.addClass('showItems');
+				on = true;
+				eq.setStyle('visibility', 'visible');
+			}
+		},
+		isOn: function () {
+			return on;
+		},
+		putItem: function (slot, itemId) {
+			VANTHIA.eq.removeItem(slot);
+			var slotX, slotY;
+			if (gearToSlot[slot] || slot === 'trash') {
+				slot = gearToSlot[slot];
+				slotX = gear[slot].offsetLeft;
+				slotY = gear[slot].offsetTop;
+				slot += 48;
+			} else {
+				slotX = backpack[slot].offsetLeft;
+				slotY = backpack[slot].offsetTop;
+			}
+			slots[slot] = new Element('span', {
+				'class': 'item',
+				'styles': {
+					'left': slotX,
+					'top': slotY + 393,
+					'background-image': "url('" + V_external + "_items/" + tooltips[itemId].img + ".gif')"
+				}
+			});
+			slots[slot].slot = slot;
+			slots[slot].dragX = slotX;
+			slots[slot].dragY = slotY;
+			makeDraggable(slots[slot], itemId);
+			slots[slot].addEvent('dblclick', function () {
+				if (tradeNPC !== '') {
+					var slot = this.slot;
+					if (slot < 48) {
+						var tooltip = tooltips[itemId + ''];
+						if (tooltip.quality > 0) {
+							VANTHIA.hud.confirm('Sell <strong class="q' + tooltip.quality + '">' + tooltip.title + '</strong> for ' + cashToCoins(Math.round(tooltip.value / 3)) + '?', function () {
+								VANTHIA.ajax('trade::sell', {
+									slot: slot,
+									npc: tradeNPC
+								});
+							});
+						} else {
+							this.fireEvent('mouseout');
+							VANTHIA.ajax('trade::sell', {
+								slot: slot,
+								npc: tradeNPC
+							});
+						}
+					}
+				}
+			});
+			game.adopt(slots[slot]);
+		},
+		removeItem: function (slot) {
+			this.trade.removeItemBySlot(slot);
+			if (slots[slot]) {
+				slots[slot].dispose();
+			}
+			slots[slot] = false;
+		},
+		removeItems: function (list) {
+			for (var i = 0; i < list.length; i++) {
+				VANTHIA.eq.removeItem(list[i]);
+			}
+		},
+		switchSlots: function (from, to) {
+			this.trade.removeItemBySlot(from);
+			this.trade.removeItemBySlot(to);
+			if (gearToSlot[from] || from === 'trash') {
+				from = gearToSlot[from] + 48;
+			}
+			if (gearToSlot[to] || to === 'trash') {
+				to = gearToSlot[to] + 48;
+			}
+			var temp = slots[to];
+			slots[to] = slots[from];
+			slots[from] = temp;
+			if (slots[to]) {
+				if (to < 48) {
+					slots[to].dragX = backpack[to].offsetLeft;
+					slots[to].dragY = backpack[to].offsetTop;
+				} else {
+					slots[to].dragX = gear[to - 48].offsetLeft;
+					slots[to].dragY = gear[to - 48].offsetTop;
+				}
+				slots[to].rollbackX = slots[to].dragX + 0;
+				slots[to].rollbackY = slots[to].dragY + 0;
+				slots[to].setStyles({
+					'left': slots[to].dragX,
+					'top': slots[to].dragY + 393
+				});
+				slots[to].slot = to;
+			}
+			if (slots[from]) {
+				if (from < 48) {
+					slots[from].dragX = backpack[from].offsetLeft;
+					slots[from].dragY = backpack[from].offsetTop;
+				} else {
+					slots[from].dragX = gear[from - 48].offsetLeft;
+					slots[from].dragY = gear[from - 48].offsetTop;
+				}
+				slots[from].rollbackX = slots[from].dragX + 0;
+				slots[from].rollbackY = slots[from].dragY + 0;
+				slots[from].setStyles({
+					'left': slots[from].dragX,
+					'top': slots[from].dragY + 393
+				});
+				slots[from].slot = from;
+			}
+		},
+		setMoney: function (cash) {
+			VANTHIA.mechanics.setMoney(cash);
+			var buffor = '<span class="copper">' + (cash % 100) + '</span>';
+			cash = Math.floor(cash / 100);
+			if (cash) {
+				buffor = '<span class="silver">' + (cash % 100) + '</span>' + buffor;
+				cash = Math.floor(cash / 100);
+				if (cash) {
+					buffor = '<span class="gold">' + cash + '</span>' + buffor;
+				}
+			}
+			money.innerHTML = buffor;
+		},
+		trade: function () {
+			var moneyInputs;
+			var moneyOffer;
+			var tradeTarget = '';
+			var labelOffer;
+			var lockOffer;
+			var acceptOffer;
+			var meLocked = false;
+			var otherLocked = false;
+			var trading = false;
+			var slotToOffer;
+			var offer;
+			var offerIcons;
+			var itemsInOffer = 0;
+			var leftOffer, rightOffer;
+			var iconClick = function () {
+				if (meLocked) {
+					return;
+				}
+				var key = this.key;
+				var slot = this.slot;
+				slotToOffer[slot] = false;
+				VANTHIA.tips.disable();
+				this.dispose();
+				VANTHIA.tips.enable();
+				offer[key] = false;
+				offerIcons[key] = false;
+				itemsInOffer--;
+			}
+			return {
+				init: function () {
+					lockOffer = $('lock_offer');
+					acceptOffer = $('accept_offer');
+					playerTrade = $('hud_player_trade');
+					labelOffer = $('label_offer');
+					leftOffer = playerTrade.getElement('#left_offer div.itemBox');
+					rightOffer = playerTrade.getElement('#right_offer div.itemBox');
+					moneyOffer = playerTrade.getElements('#gold_right_slot, #silver_right_slot, #copper_right_slot');
+					moneyInputs = playerTrade.getElements('input.money');
+					moneyInputs.each(function (el, key) {
+						el.value = '0';
+						el.key = key;
+						if (el.hasClass('capped')) {
+							el.capped = true;
+						} else {
+							el.capped = false;
+						}
+						el.addEvent('keypress', function (event) {
+							event = new Event(event);
+							if (event.key === 'tab') {
+								var key = (el.key + 1) % 3;
+								moneyInputs[key].focus();
+								return false;
+							}
+							if (meLocked) {
+								return false;
+							}
+							var self = this;
+							setTimeout(function () {
+								var newValue = Number(self.value.replace(/[^0-9]+/gmi, ''));
+								if (self.capped) {
+									if (newValue > 99) {
+										newValue = 99;
+									}
+								} else { if (newValue > 999999) {
+										newValue = 999999;
+									}
+								}
+								newValue += '';
+								if (newValue !== self.value) {
+									self.value = newValue;
+								}
+							},
+							0);
+						});
+					});
+					$('cancel_offer').addEvent('click', function () {
+						VANTHIA.ajax("trade::cancel", {
+							target: tradeTarget
+						});
+					});
+					lockOffer.addEvent('click', function () {
+						if (!this.hasClass('disabled')) {
+							this.addClass('disabled');
+							var cash = Number(moneyInputs[0].value) * 10000 + Number(moneyInputs[1].value) * 100 + Number(moneyInputs[2].value)
+							var offerString = '';
+							for (var i = 0, l = offer.length; i < l; i++) {
+								if (offer[i]) {
+									if (offerString !== '') {
+										offerString += '|' + offer[i];
+									} else {
+										offerString += offer[i];
+									}
+								}
+							}
+							VANTHIA.ajax("trade::lock", {
+								target: tradeTarget,
+								cash: cash,
+								items: offerString
+							});
+						}
+					});
+					acceptOffer.addEvent('click', function () {
+						if (!this.hasClass('disabled')) {
+							this.addClass('disabled');
+							VANTHIA.ajax("trade::finish", {
+								target: tradeTarget
+							});
+						}
+					});
+				},
+				sync: function (name) {
+					VANTHIA.hud.confirm(name + " wants to trade, do you accept?", function () {
+						VANTHIA.hud.infoBox("Waiting for the other player...");
+						VANTHIA.ajax("trade::accept", {
+							target: name
+						});
+					},
+					function () {
+						VANTHIA.ajax("trade::reject", {
+							target: name
+						});
+					});
+				},
+				reject: function (name) {
+					VANTHIA.ajax.normalRate();
+					VANTHIA.hud.hideBox();
+					VANTHIA.log(name + " has rejected your trade request.", "server");
+				},
+				start: function (name) {
+					slotToOffer = {};
+					offer = [];
+					offerIcons = [];
+					itemsInOffer = 0;
+					meLocked = false;
+					otherLocked = false;
+					trading = true;
+					tradeTarget = name;
+					labelOffer.innerHTML = 'Waiting for ' + name + '\'s offer...';
+					moneyInputs.each(function (el) {
+						el.value = 0;
+					});
+					moneyOffer.each(function (el) {
+						el.innerHTML = '0';
+					});
+					this.release();
+					leftOffer.empty();
+					rightOffer.empty();
+					playerTrade.setStyle('display', 'block');
+					VANTHIA.ajax.combatRate();
+				},
+				offer: function (name, cash, items) {
+					var copper = cash % 100;
+					cash = Math.floor(cash / 100);
+					var silver = cash % 100;
+					var gold = Math.floor(cash / 100);
+					moneyOffer[0].innerHTML = gold;
+					moneyOffer[1].innerHTML = silver;
+					moneyOffer[2].innerHTML = copper;
+					var icon;
+					for (var i = 0, l = items.length; i < l; i++) {
+						icon = new Element('a', {
+							'class': 'icon',
+							'styles': {
+								'background-image': "url('" + V_external + "_items/" + tooltips[items[i]].img + ".gif')"
+							}
+						});
+						addTooltip(icon, items[i], true, true);
+						rightOffer.appendChild(icon);
+					}
+					labelOffer.innerHTML = name + ' has locked the offer:';
+					otherLocked = true;
+					this.checkLocks();
+				},
+				end: function () {
+					trading = false;
+					tradeTarget = '';
+					VANTHIA.ajax.normalRate();
+					playerTrade.setStyle('display', 'none');
+				},
+				locked: function () {
+					meLocked = true;
+					this.checkLocks();
+				},
+				release: function () {
+					lockOffer.removeClass('disabled');
+					acceptOffer.addClass('disabled');
+				},
+				checkLocks: function () {
+					if (meLocked && otherLocked) {
+						acceptOffer.removeClass('disabled');
+					}
+				},
+				addItem: function (slot, tooltip, itemId) {
+					if (meLocked) {
+						return;
+					}
+					if (slot > 47) {
+						VANTHIA.log("Can't trade equipped items!", "error");
+						return;
+					}
+					if (itemsInOffer > 17) {
+						VANTHIA.log("Can't add more items to the offer!", "error");
+						return;
+					}
+					slot = slot + '';
+					if (slotToOffer[slot] || slotToOffer[slot] === 0) {
+						VANTHIA.log("This is already in the offer!", "error");
+						return;
+					}
+					itemsInOffer++;
+					var key = offer.length;
+					slotToOffer[slot] = key;
+					offer[key] = slot + ':' + itemId;
+					var icon = new Element('a', {
+						'class': 'icon',
+						'styles': {
+							'background-image': "url('" + V_external + "_items/" + tooltip.img + ".gif')"
+						}
+					});
+					offerIcons[key] = icon;
+					icon.slot = slot;
+					icon.key = key;
+					icon.itemId = itemId;
+					icon.onclick = iconClick;
+					addTooltip(icon, itemId, true, true);
+					leftOffer.appendChild(icon);
+				},
+				removeItemBySlot: function (slot) {
+					if (!trading) {
+						return;
+					}
+					slot = slot + '';
+					if (slotToOffer[slot] || slotToOffer[slot] === 0) {
+						var key = slotToOffer[slot];
+						slotToOffer[slot] = false;
+						offer[key] = false;
+						offerIcons[key].dispose();
+						offerIcons[key] = false;
+						itemsInOffer--;
+					}
+				},
+				on: function () {
+					return trading;
+				}
+			}
+		} ()
+	};
+} ();
+VANTHIA.map = function () {
+	var canvasMode = false;
+	var renderMe = true;
+	var currentMap = 0;
+	var mapw = 0;
+	var maph = 0;
+	var mapdata = false;
+	var currentSet = '';
+	var mapwByTwo;
+	var mapbuffor = [];
+	var canvasbuffor = [];
+	var mapcbuffor = [];
+	var mapframe = $('mapframe');
+	var mapChanger = $('hud_map_changer');
+	var mapChangerLabels = $$('#hud_map_changer p');
+	var mapChangerFx = new Fx.Tween(mapChanger, {
+		link: 'cancel',
+		duration: 1000
+	});
+	var topoffset = 135;
+	var leftoffset = 286;
+	var hudMap;
+	var mapCursorX = -1;
+	var mapCursorY = -1;
+	var cursorEl;
+	var playerX = 0;
+	var playerY = 0;
+	var npcList = {};
+	var bossObj;
+	var bossSpawn = 0;
+	var markX = -1;
+	var markY = -1;
+	var finalPath = [];
+	var objects = [];
+	var objectsFx = [];
+	var objectsMap = [];
+	var objectsRestore = [];
+	var fxPool = {};
+	var charPool = {};
+	var tempScript = false;
+	var phmap = [];
+	var tileset = [];
+	var playersInit = [];
+	var playerDirection = 1;
+	VANTHIA.tileset = {};
+	VANTHIA.objects = [];
+	function directionToSprite(nswe) {
+		if (nswe == 1 || nswe == 4) {
+			return ('right');
+		}
+		return ('left');
+	}
+	function cleanMapBuffor() {
+		mapbuffor = [];
+		mapcbuffor = [];
+		if (canvasMode) {
+			canvasbuffor = [];
+			mapbuffor[0] = '<canvas id="mapCanvas" width="2000" height="1500"></canvas>';
+		}
+	}
+	function isFloor(x, y) {
+		if (x >= 0 && x < mapw && y >= 0 && y < maph) {
+			if (phmap[y][x] === true && mapdata[y][x] !== false) {
+				return true;
+			}
+		}
+		return false;
+	}
+	function putTile(id, x, y, temp) {
+		var width = "";
+		if (id[1]) {
+			width = "; width: " + (id[1] + 1) * 36 + "px";
+			id = Number(id[0]);
+		}
+		if (id > 0) {
+			var zindex = mapw - x + y + 21;
+			var left = (x + y) * 18 + leftoffset;
+			var top = (mapw - x + y) * 9 + topoffset - 48;
+			if (temp) {
+				if (id == '004') {
+					id = "dot";
+				} else {
+					id = "cross";
+				}
+				mapcbuffor.push('<span class="t' + id + '" style="left: ' + left + 'px; top: ' + top + 'px; z-index: ' + (zindex + 500) + width + '" onclick="VANTHIA.map.click();"></span>');
+			} else { if (canvasMode) {
+					canvasbuffor.push({
+						'x': left,
+						'y': top,
+						'tile': id
+					});
+				} else { if (id >= 100) {} else if (id >= 10) {
+						id = "0" + id;
+					} else if (id > 0) {
+						id = "00" + id;
+					}
+					mapbuffor.push('<span class="t' + id + '" style="left: ' + left + 'px; top: ' + top + 'px; z-index: ' + zindex + width + '"></span>');
+				}
+			}
+		}
+	}
+	function setPlayer(dir, instant) {
+		var zindex = mapw - playerX + playerY + 521;
+		var left = (playerX + playerY) * 18 + leftoffset - 2;
+		var top = (mapw - playerX + playerY) * 9 + topoffset - 50;
+		var el = $('pc');
+		el.setStyle('left', left).setStyle('top', top).setStyle('z-index', zindex);
+		var temp = el.className.split(' ');
+		temp[4] = directionToSprite(dir);
+		el.className = temp.join(' ');
+		var scleft = (playerX + playerY) * 18 + leftoffset;
+		var sctop = (mapw - playerX + playerY) * 9 + topoffset;
+		if (instant !== -1 && !instant) {
+			fxPool.hudMapScroll.start(scleft, sctop);
+		}
+	}
+	function injectObj(objId, x, y) {
+		var obj = VANTHIA.objects[objId];
+		var zindex = mapw - x + y + 521;
+		var left = (x + y) * 18 + 19 + leftoffset - obj.xo;
+		var top = (mapw - x + y) * 9 + 16 + topoffset - obj.yo;
+		var classes = 'object';
+		if (obj.hide) {
+			classes += ' hide';
+		}
+		var el = new Element('span', {
+			'class': classes,
+			'styles': {
+				'background-image': 'url(\'' + V_external + '_objects/' + obj.src + '\')',
+				'width': obj.width,
+				'height': obj.height,
+				'left': left,
+				'top': top,
+				'z-index': zindex
+			}
+		});
+		el.onclick = function () {
+			VANTHIA.map.click();
+		};
+		if (obj.hide) {
+			el.dataid = objects.length;
+			objects[el.dataid] = el;
+			objectsFx[el.dataid] = new Fx.Tween(el, {
+				link: 'cancel',
+				duration: 500,
+				property: 'opacity'
+			});
+			objectsFx[el.dataid].hideValue = obj.hide;
+		}
+		var tempx;
+		var tempy;
+		for (var ix, iy = 0; iy < obj.sizey; iy++) {
+			for (ix = 0; ix < obj.sizex; ix++) {
+				tempx = x + ix;
+				tempy = y + iy;
+				mapdata[tempy][tempx] = false;
+				if (obj.hide) {
+					objectsMap[tempx + tempy * mapw] = el.dataid;
+				}
+			}
+		}
+		hudMap.firstChild.appendChild(el);
+	}
+	function renderMap() {
+		var playerName = VANTHIA.pc.getName();
+		mapbuffor.push('<span id="cursor" style="left: -60px;" onclick="VANTHIA.map.click();"></span><div id="pc" class="' + VANTHIA.mechanics.getSpriteClass() + '" onclick="VANTHIA.map.click();"><div class="name"><p>' + playerName + '</p><p class="sh1">' + playerName + '</p><p class="sh2">' + playerName + '</p><p class="sh3">' + playerName + '</p><p class="sh4">' + playerName + '</p></div><div class="head face' + VANTHIA.pc.getFace() + '"></div><div class="body"></div></div><div id="map_path"></div>');
+		hudMap.firstChild.empty().set('html', mapbuffor.join(''));
+		cursorEl = $('cursor');
+		setPlayer(VANTHIA.pc.getDir(), true);
+	}
+	function renderPath() {
+		$('map_path').empty().set('html', mapcbuffor.join(''));
+		mapcbuffor = [];
+	}
+	function buildPhmap() {
+		phmap = [];
+		objectsMap = [];
+		var i = 0;
+		for (var mapwi, maphi = 0; maphi < maph; maphi++) {
+			phmap[maphi] = [];
+			for (mapwi = 0; mapwi < mapw; mapwi++) {
+				phmap[maphi][mapwi] = false;
+				objectsMap[i] = null;
+				i++;
+			}
+		}
+		restorePhmap();
+	}
+	function setPhTile(x, y) {
+		if (mapdata[y][x][1]) {
+			phmap[y][x] = tileset[currentSet][mapdata[y][x][0]];
+		} else if (mapdata[y][x] < 0) {
+			phmap[y][x] = tileset[currentSet][-1 * mapdata[y][x]];
+		} else {
+			phmap[y][x] = tileset[currentSet][mapdata[y][x]];
+		}
+	}
+	function restorePhmap() {
+		if (renderMe) {
+			var i = mapw;
+			var stop = 0 - maph;
+			var x, y;
+			for (var i = mapw - 1; i > stop; i--) {
+				x = i;
+				y = 0;
+				while (x < mapw && y < maph) {
+					if (x >= 0 && y >= 0) {
+						putTile(mapdata[y][x], x, y);
+						setPhTile(x, y);
+					}
+					x++;
+					y++;
+				}
+			}
+		} else {
+			for (var x, y = 0; y < maph; y++) {
+				for (x = 0; x < mapw; x++) {
+					setPhTile(x, y);
+				}
+			}
+		}
+	}
+	function shrink() {
+		for (var mapIY = 0; mapIY < maph - 1; mapIY++) {
+			for (var mapIX = 0; mapIX < mapw - 1; mapIX++) {
+				shrinker(mapIX, mapIY);
+			}
+		}
+	}
+	function shrinker(x, y) {
+		var i = 1;
+		if (mapdata[y][x] > 0) {
+			try {
+				while (mapdata[y][x] === mapdata[y + i][x + i] || mapdata[y][x][0] === mapdata[y + i][x + i]) {
+					if (!mapdata[y][x][1]) {
+						mapdata[y][x] = [mapdata[y][x], 1];
+					} else {
+						mapdata[y][x][1]++;
+					}
+					mapdata[y + i][x + i] *= -1;
+					i++;
+				}
+			} catch(Ex) {}
+		}
+	}
+	function parseTileset() {
+		var cssbuffor = '';
+		var tile;
+		for (var set in VANTHIA.tileset) {
+			tileset[set] = [];
+			for (var i = 0; VANTHIA.tileset[set][i]; i++) {
+				if (i < 10) {
+					tile = 't00' + i;
+				} else if (i < 100) {
+					tile = 't0' + i;
+				} else {
+					tile = 't' + i;
+				}
+				cssbuffor += '#mapframe.' + set + ' .' + tile + ' { background-image: url(\'' + V_external + '_tiles/' + VANTHIA.tileset[set][i][0] + '\'); }\n';
+				if (VANTHIA.tileset[set][i][1]) {
+					tileset[set][i] = true;
+				} else {
+					tileset[set][i] = false;
+				}
+			}
+		}
+		var cssnode = document.createElement('style');
+		cssnode.type = "text/css";
+		try {
+			try {
+				cssnode.innerHTML = cssbuffor;
+			} catch(Ex) {
+				cssnode.appendChild(document.createTextNode(cssbuffor));
+			}
+			document.head.appendChild(cssnode);
+		} catch(Exx) {
+			cssnode = document.createElement('div');
+			cssnode.innerHTML = '<br><style>' + cssbuffor + '</style>';
+			document.body.appendChild(cssnode);
+		}
+	}
+	return {
+		init: function (mapid, map, players) {
+			try {
+				if (document.createElement('canvas').getContext('2d')) {
+					canvasMode = true;
+				}
+			} catch(ex) {}
+			playersInit = players;
+			hudMap = $('hud_map');
+			fxPool.hudMapScroll = new Fx.Scroll(hudMap, {
+				link: 'cancel',
+				duration: 500,
+				offset: {
+					x: -286,
+					y: -135
+				}
+			});
+			VANTHIA.map.load(mapid, map);
+		},
+		change: function (mapid, map, x, y, direction, players) {
+			playerX = x;
+			playerY = y;
+			playersInit = players;
+			renderMe = true;
+			VANTHIA.hud.target.hide();
+			VANTHIA.map.load(mapid, map);
+		},
+		center: function () {
+			var scleft = (playerX + playerY) * 18 + leftoffset;
+			var sctop = (mapw - playerX + playerY) * 9 + topoffset;
+			fxPool.hudMapScroll.set(scleft - 286, sctop - 135);
+		},
+		load: function (mapid, map) {
+			VANTHIA.log("Your current location: " + map.name, "special");
+			hudMap.setStyle('display', 'none');
+			currentMap = mapid;
+			mapChangerFx.cancel();
+			mapChangerFx.set('opacity', 1);
+			mapChangerLabels.set('html', '');
+			mapChanger.style.display = 'block';
+			VANTHIA.hud.preCooldown();
+			VANTHIA.sound.stop();
+			npcList = {};
+			currentSet = map.tileset;
+			VANTHIA.map.preload.setTiles(VANTHIA.tileset[currentSet]);
+			mapw = map.width;
+			maph = map.height;
+			mapwByTwo = mapw / 2;
+			mapdata = map.data;
+			if (!canvasMode) {
+				shrink();
+			}
+			cleanMapBuffor();
+			buildPhmap();
+			renderMe = false;
+			mapframe.className = currentSet;
+			renderMap();
+			map.objects.each(function (obj) {
+				injectObj(obj[0], obj[1], obj[2]);
+			});
+			charPool = [];
+			playersInit.each(function (player) {
+				VANTHIA.map.createChar(player);
+				VANTHIA.map.update(player.name, player.x, player.y, player.nswe);
+			});
+			if (map.npcs) {
+				map.npcs.each(function (npc) {
+					VANTHIA.map.createNPC(npc);
+				});
+			}
+			VANTHIA.hud.endCooldown();
+			if (map.music) {
+				VANTHIA.map.preload.addMusic(map.music, 'main');
+			}
+			if (map.combatMusic) {
+				VANTHIA.map.preload.addMusic(map.combatMusic, 'alt');
+			}
+			if (map.bossMusic) {
+				VANTHIA.map.preload.addMusic(map.bossMusic, 'boss');
+			}
+			VANTHIA.map.preload.start(function () {
+				mapChangerLabels.each(function (el) {
+					el.innerHTML = map.name;
+				});
+				mapChanger.className = map.type || "semi";
+				mapChanger.style.display = 'block';
+				setTimeout(function () {
+					mapChangerFx.start('opacity', 0);
+				},
+				1500);
+				hudMap.setStyle('display', 'block');
+				if (canvasMode) {
+					var canvasEl = $('mapCanvas');
+					var ctx = $('mapCanvas').getContext('2d');
+					for (var i = 0, l = canvasbuffor.length, el, img; i < l; i++) {
+						el = canvasbuffor[i];
+						img = VANTHIA.map.preload.getElement(el.tile);
+						el.y += 80 - img.height;
+						ctx.drawImage(img, el.x, el.y);
+					}
+				}
+				VANTHIA.map.center();
+				if (map.music) {
+					VANTHIA.sound.setTrack();
+				}
+				if (map.combatMusic) {
+					VANTHIA.sound.setAltTrack();
+				}
+				VANTHIA.sound.start();
+			});
+		},
+		setPlayer: function (x, y) {
+			playerX = x;
+			playerY = y;
+		},
+		setBossSpawn: function (spawn) {
+			bossSpawn = spawn;
+		},
+		bossKilled: function () {
+			bossSpawn = 0;
+			bossObj.getElement('div.body').setStyle('background-image', "url('" + V_external + "_npcs/" + bossObj.npc.img_dead + "')");
+			bossObj.npc.alive = false;
+		},
+		createNPC: function (npc) {
+			var npcObj = new Element('div', {
+				"class": "player"
+			});
+			var sprite = npc.img;
+			var nameTagClass = 'npc';
+			if (npc.boss) {
+				nameTagClass = 'boss';
+				bossObj = npcObj;
+				if (!bossSpawn) {
+					sprite = npc.img_dead;
+					npc.alive = false;
+				} else {
+					npc.alive = true;
+				}
+			}
+			var nameTag = new Element('div', {
+				"class": "name"
+			});
+			nameTag.innerHTML = '<p class="' + nameTagClass + '">' + npc.name + '</p><p class="sh1">' + npc.name + '</p><p class="sh2">' + npc.name + '</p><p class="sh3">' + npc.name + '</p><p class="sh4">' + npc.name + '</p>';
+			npcObj.appendChild(nameTag);
+			npcObj.appendChild(new Element('div', {
+				"class": "body",
+				"styles": {
+					'background-image': "url('" + V_external + "_npcs/" + sprite + "')",
+					'width': 40,
+					'left': 0
+				}
+			}));
+			npcObj.npc = npc;
+			npcObj.onclick = function () {
+				VANTHIA.map.click();
+			};
+			mapframe.appendChild(npcObj);
+			var x = Number(npc.x);
+			var y = Number(npc.y);
+			var zindex = mapw - x + y + 521;
+			var left = (x + y) * 18 + leftoffset - 2;
+			var top = (mapw - x + y) * 9 + topoffset - 50;
+			mapdata[y][x] = false;
+			npcList[x + 'x' + y] = true;
+			npcObj.id = 'character' + x + 'x' + y;
+			npcObj.setStyle('left', left).setStyle('top', top).setStyle('z-index', zindex);
+		},
+		createChar: function (player) {
+			if (!charPool[player.name]) {
+				var gender = 'male';
+				if (player.gender == 'f') {
+					gender = 'female';
+				}
+				var playerObj = new Element('div', {
+					"class": VANTHIA.mechanics.getSpriteClass(player.race, player.gender, player.cl, player.wType, player.nswe)
+				});
+				var nameTag = new Element('div', {
+					"class": "name"
+				});
+				nameTag.innerHTML = '<p>' + player.name + '</p><p class="sh1">' + player.name + '</p><p class="sh2">' + player.name + '</p><p class="sh3">' + player.name + '</p><p class="sh4">' + player.name + '</p>';
+				playerObj.appendChild(nameTag);
+				playerObj.appendChild(new Element('div', {
+					"class": "body"
+				}));
+				playerObj.appendChild(new Element('div', {
+					"class": "head face" + player.face
+				}));
+				playerObj.name = player.name;
+				playerObj.cl = player.cl;
+				playerObj.race = player.race;
+				playerObj.face = player.face;
+				playerObj.gender = player.gender;
+				playerObj.onclick = function () {
+					VANTHIA.map.click();
+				};
+				charPool[player.name] = playerObj;
+				mapframe.appendChild(charPool[player.name]);
+			}
+		},
+		sprite: function (name, cl, wType) {
+			if (charPool[name]) {
+				var el = charPool[name];
+				var temp = el.className.split(' ');
+				var wMode = VANTHIA.mechanics.getSpriteMode(cl, wType);
+				temp[5] = 'w' + wMode;
+				temp[2] = 'cl' + cl;
+				el.className = temp.join(' ');
+			}
+		},
+		updatePlayerSprite: function () {
+			var el = $('pc');
+			if (el) {
+				var temp1 = el.className.split(' ');
+				var temp2 = VANTHIA.mechanics.getSpriteClass().split(' ');
+				temp2[4] = temp1[4];
+				el.className = temp2.join(' ');
+			}
+		},
+		enter: function (player) {
+			VANTHIA.map.createChar(player);
+			VANTHIA.map.update(player.name, player.x, player.y, player.nswe);
+		},
+		update: function (name, x, y, dir) {
+			x = Number(x);
+			y = Number(y);
+			var zindex = mapw - x + y + 521;
+			var left = (x + y) * 18 + leftoffset - 2;
+			var top = (mapw - x + y) * 9 + topoffset - 50;
+			var el = charPool[name];
+			el.id = 'character' + x + 'x' + y;
+			var temp = el.className.split(' ');
+			temp[4] = directionToSprite(dir);
+			el.className = temp.join(' ');
+			el.setStyle('left', left).setStyle('top', top).setStyle('z-index', zindex);
+		},
+		leave: function (name) {
+			try {
+				if ($('target').parentNode === charPool[name]) {
+					VANTHIA.hud.target.hide();
+				}
+			} catch(Ex) {}
+			charPool[name].dispose();
+			charPool[name] = false;
+		},
+		hideObj: function (x, y) {
+			var objId = objectsMap[x + y * mapw];
+			if (objId === null) {
+				return;
+			}
+			if (objectsFx[objId] && !objectsFx[objId].fade) {
+				try {
+					clearTimeout(objectsFx[objId].ftimer);
+				} catch(Ex) {}
+				objectsRestore[objectsRestore.length] = objId;
+				objectsFx[objId].fade = true;
+				objectsFx[objId].cancel();
+				objectsFx[objId].set(objectsFx[objId].hideValue);
+			}
+		},
+		showObj: function (objId) {
+			if (objectsFx[objId] && objectsFx[objId].fade) {
+				objectsFx[objId].fade = false;
+				objectsFx[objId].ftimer = setTimeout(function () {
+					objectsFx[objId].fade = false;
+					objectsFx[objId].start(1);
+				},
+				500);
+			}
+		},
+		alertRestore: function () {
+			alert(objectsRestore);
+		},
+		cursor: function (x, y) {
+			if (mapCursorX !== x || mapCursorY !== y) {
+				objectsRestore.each(function (id) {
+					VANTHIA.map.showObj(id);
+				});
+				objectsRestore = [];
+				var ix;
+				var iy;
+				for (ix = -2; ix <= 2; ix++) {
+					for (iy = -2; iy <= 2; iy++) {
+						if (ix !== 0 || iy !== 0) {
+							VANTHIA.map.hideObj(x + ix, y + iy);
+						}
+					}
+				}
+				var left = (x + y) * 18 + leftoffset;
+				var top = (mapw - x + y) * 9 + topoffset - 48;
+				cursorEl.style.left = left + 'px';
+				cursorEl.style.top = top + 'px';
+				mapCursorX = x;
+				mapCursorY = y;
+			}
+		},
+		deTarget: function () {
+			var targetObj = $('target');
+			if (targetObj) {
+				$(targetObj.parentNode).removeClass('targeted');
+				targetObj.dispose();
+				return true;
+			}
+			return false;
+		},
+		click: function () {
+			var Walker = [];
+			var s, marktile;
+			var targetPlayer = $('character' + mapCursorX + 'x' + mapCursorY);
+			VANTHIA.hud.target.endConversation();
+			if (targetPlayer) {
+				VANTHIA.map.deTarget();
+				targetPlayer.addClass('targeted');
+				targetPlayer.appendChild(new Element('div', {
+					id: 'target'
+				}));
+				if (targetPlayer.npc) {
+					VANTHIA.hud.target.set(targetPlayer.npc.name, targetPlayer.npc.desc, targetPlayer.npc.face, targetPlayer.npc);
+				} else {
+					VANTHIA.hud.target.set(targetPlayer.name, targetPlayer.cl, targetPlayer.face, false, targetPlayer.race, targetPlayer.gender);
+				}
+				finalPath = [];
+				markY = markX = -1;
+				renderPath();
+				return false;
+			}
+			if (VANTHIA.ajax.processing) {
+				return false;
+			}
+			if (mapCursorX === markX && mapCursorY === markY) {
+				if (VANTHIA.hud.onCooldown()) {
+					return false;
+				}
+				if (finalPath.length) {
+					VANTHIA.ajax('map::move', {
+						path: finalPath.join(''),
+						map: currentMap
+					});
+					finalPath = [];
+				}
+			} else { if (mapCursorX >= 0 && mapCursorY >= 0 && (mapCursorX !== playerX || mapCursorY !== playerY)) {
+					Walker.stepc = 0;
+					Walker.pushXY = function (x, y, px, py, n) {
+						n++;
+						Walker.push([x, y, n]);
+						if (x >= 0 && x < mapw && y >= 0 && y < maph) {
+							phmap[y][x] = [px, py];
+						}
+					};
+					Walker.toggle = false;
+					Walker.pushXY(playerX, playerY, false, false, 0);
+					while (Walker.length) {
+						s = Walker.shift();
+						if (s[2] % 2) {
+							if (isFloor(s[0], s[1] - 1)) {
+								Walker.pushXY(s[0], s[1] - 1, s[0], s[1], s[2]);
+							}
+							if (isFloor(s[0] - 1, s[1])) {
+								Walker.pushXY(s[0] - 1, s[1], s[0], s[1], s[2]);
+							}
+							if (isFloor(s[0], s[1] + 1)) {
+								Walker.pushXY(s[0], s[1] + 1, s[0], s[1], s[2]);
+							}
+							if (isFloor(s[0] + 1, s[1])) {
+								Walker.pushXY(s[0] + 1, s[1], s[0], s[1], s[2]);
+							}
+						} else { if (isFloor(s[0] + 1, s[1])) {
+								Walker.pushXY(s[0] + 1, s[1], s[0], s[1], s[2]);
+							}
+							if (isFloor(s[0], s[1] + 1)) {
+								Walker.pushXY(s[0], s[1] + 1, s[0], s[1], s[2]);
+							}
+							if (isFloor(s[0] - 1, s[1])) {
+								Walker.pushXY(s[0] - 1, s[1], s[0], s[1], s[2]);
+							}
+							if (isFloor(s[0], s[1] - 1)) {
+								Walker.pushXY(s[0], s[1] - 1, s[0], s[1], s[2]);
+							}
+						}
+					}
+					Walker = [mapCursorX, mapCursorY];
+					if (phmap[Walker[1]][Walker[0]] !== true) {
+						finalPath = [];
+						marktile = 5;
+						while (Walker[0] !== playerX || Walker[1] !== playerY) {
+							putTile(marktile, Walker[0], Walker[1], true);
+							marktile = 4;
+							if (Walker[0] !== phmap[Walker[1]][Walker[0]][0]) {
+								if (Walker[0] < phmap[Walker[1]][Walker[0]][0]) {
+									finalPath.push(2);
+								} else {
+									finalPath.push(4);
+								}
+							} else { if (Walker[1] < phmap[Walker[1]][Walker[0]][1]) {
+									finalPath.push(3);
+								} else {
+									finalPath.push(1);
+								}
+							}
+							Walker = phmap[Walker[1]][Walker[0]];
+						}
+						finalPath.reverse();
+						setPlayer(finalPath[0], -1);
+						markX = mapCursorX;
+						markY = mapCursorY;
+					} else {
+						markX = -1;
+						markY = -1;
+						VANTHIA.log("No path found!", "error");
+					}
+					renderPath();
+				} else {
+					markX = -1;
+					markY = -1;
+					renderPath();
+				}
+			}
+		},
+		move: function (x, y, direction) {
+			renderPath();
+			playerX = markX = x;
+			playerY = markY = y;
+			setPlayer(direction);
+			restorePhmap();
+		},
+		hover: function (event) {
+			event = new Event(event);
+			var x = (event.page.x + hudMap.scrollLeft - leftoffset - 18) / 36;
+			var y = (event.page.y + hudMap.scrollTop - topoffset - 100) / 18 - mapwByTwo;
+			var XX = Math.ceil(x + (y * -1));
+			var YY = Math.floor(x + y);
+			if ((XX >= 0 && XX < mapw && YY >= 0 && YY < maph && phmap[YY][XX] && mapdata[YY][XX] !== false) || npcList[XX + 'x' + YY]) {
+				VANTHIA.map.cursor(XX, YY);
+			}
+		},
+		getPlayerX: function () {
+			return playerX;
+		},
+		getPlayerY: function () {
+			return playerY;
+		},
+		setTilesets: function (data) {
+			VANTHIA.tileset = data;
+			parseTileset();
+		},
+		setObjects: function (data) {
+			VANTHIA.objects = data;
+		}
+	};
+} ();
+VANTHIA.map.preload = function () {
+	var images = [];
+	var mp3s = [];
+	var elements = {};
+	var hudPreloader = $('hud_preloader');
+	return {
+		setTiles: function (list) {
+			list.each(function (el, key) {
+				if (el && el[0]) {
+					images.push([V_external + '_tiles/' + el[0], key]);
+				}
+			});
+		},
+		addMusic: function (mp3, id) {
+			mp3s.push([mp3, id]);
+		},
+		start: function (callback) {
+			hudPreloader.setStyle('display', 'block');
+			var total = images.length;
+			var done = 0;
+			var image;
+			function preloadMusic() {
+				var total = mp3s.length;
+				var done = 0;
+				function mp3Tick() {
+					hudPreloader.innerHTML = 'Preloading music: ' + Math.floor(((this.bytesLoaded / this.bytesTotal) / total + done / total) * 100) + '%';
+				}
+				function mp3Loaded() {
+					done++;
+					nextTrack();
+				}
+				function nextTrack() {
+					if (done == total) {
+						mp3s = [];
+						hudPreloader.setStyle('display', 'none');
+						hudPreloader.innerHTML = '';
+						callback();
+						return;
+					}
+					VANTHIA.sound.preload(mp3s[done][0], mp3s[done][1], mp3Tick, mp3Loaded);
+				}
+				nextTrack();
+			}
+			function imageLoaded() {
+				this.onload = null;
+				done++;
+				if (done == total) {
+					images = [];
+					preloadMusic();
+				} else {
+					hudPreloader.innerHTML = 'Preloading images: ' + Math.floor((done) / total * 100) + '%';
+				}
+			}
+			elements = {};
+			var i = total;
+			while (i--) {
+				elements[images[i][1] + ''] = image = new Image();
+				image.onload = imageLoaded;
+				image.src = images[i][0];
+			}
+		},
+		getElement: function (key) {
+			return elements[key + ''];
+		}
+	};
+} ();
+VANTHIA.sound = function () {
+	var sound = false;
+	soundManager.url = '/sm2/';
+	soundManager.debugMode = false;
+	soundManager.onload = function () {
+		VANTHIA.log("Sound ready!");
+		sound = true;
+	};
+	var userChoice = false;
+	var mainTrack = false;
+	var alternativeTrack = false;
+	var currentTrack = 'main';
+	var maxVolume = 100;
+	var volumeCookie = Cookie.read('opt_volume');
+	if (volumeCookie) {
+		maxVolume = Number(volumeCookie);
+		if (maxVolume > 100) {
+			maxVolume = 100;
+		} else if (maxVolume < 0) {
+			maxVolume = 0;
+		}
+	}
+	VANTHIA.newCommand('/volume', function (msg) {
+		VANTHIA.sound.setVolume(Number(msg.shift()));
+	});
+	return {
+		disable: function () {
+			sound = false;
+		},
+		enable: function () {
+			sound = true;
+		},
+		preload: function (mp3, id, tick, loaded) {
+			if (!userChoice) {
+				VANTHIA.hud.confirm('Enable music? (it can take a while to download)', function () {
+					sound = true;
+					userChoice = true;
+					VANTHIA.sound.preload(mp3, id, tick, loaded);
+				},
+				function () {
+					sound = false;
+					userChoice = true;
+					loaded();
+				});
+				return;
+			}
+			if (sound) {
+				soundManager.destroySound(id);
+				soundManager.createSound({
+					id: id,
+					url: V_external + '_mp3/' + mp3 + '.mp3',
+					volume: maxVolume,
+					autoLoad: true,
+					onfinish: function () {
+						soundManager.play(id);
+					},
+					whileloading: tick,
+					onload: loaded
+				});
+			} else {
+				loaded();
+			}
+		},
+		setTrack: function (mp3) {
+			if (sound) {
+				mainTrack = soundManager.getSoundById('main');
+			}
+		},
+		setAltTrack: function (mp3) {
+			if (sound) {
+				alternativeTrack = soundManager.getSoundById('alt');
+			}
+		},
+		setBossTrack: function (mp3) {
+			if (sound) {
+				alternativeTrack = soundManager.getSoundById('boss');
+			}
+		},
+		start: function () {
+			if (mainTrack && sound) {
+				mainTrack.play();
+			}
+		},
+		stop: function () {
+			if (mainTrack) {
+				mainTrack.stop();
+			}
+			if (alternativeTrack) {
+				alternativeTrack.stop();
+			}
+		},
+		goAlt: function () {
+			var volume = 0;
+			function tick() {
+				volume += 4;
+				alternativeTrack.setVolume(Math.round(volume / 100 * maxVolume));
+				mainTrack.setVolume(Math.round((100 - volume) / 100 * maxVolume));
+				if (volume == 100) {
+					mainTrack.pause();
+				} else {
+					setTimeout(function () {
+						tick();
+					},
+					30);
+				}
+			}
+			if (sound) {
+				currentTrack = 'alt';
+				mainTrack.setVolume(100);
+				alternativeTrack.setVolume(0);
+				alternativeTrack.play();
+				tick();
+			}
+		},
+		goMain: function () {
+			var volume = 0;
+			function tick() {
+				volume += 2;
+				mainTrack.setVolume(Math.round(volume / 100 * maxVolume));
+				alternativeTrack.setVolume(Math.round((100 - volume) / 100 * maxVolume));
+				if (volume == 100) {
+					alternativeTrack.stop();
+					alternativeTrack = soundManager.getSoundById('alt');
+				} else {
+					setTimeout(function () {
+						tick();
+					},
+					30);
+				}
+			}
+			if (sound) {
+				currentTrack = 'main';
+				alternativeTrack.setVolume(100);
+				mainTrack.setVolume(0);
+				mainTrack.play();
+				tick();
+			}
+		},
+		setVolume: function (volume) {
+			if (sound) {
+				volume = Math.round(volume);
+				if (volume < 0) {
+					volume = 0;
+				} else if (volume > 100) {
+					volume = 100;
+				}
+				maxVolume = volume;
+				Cookie.write('opt_volume', volume);
+				soundManager.setVolume(currentTrack, maxVolume);
+			}
+		}
+	};
+} ();
+VANTHIA.combat = function () {
+	var inCombat = false;
+	var combatBackground;
+	var combatBackgroundFx;
+	var combatFrames;
+	var combatFramesFx = [];
+	var combatFramesName;
+	var actionbar;
+	var lootbar;
+	var selected = 0;
+	var sendingRequest = false;
+	var totalEnemies = 3;
+	var lockedIcon = false;
+	var turns = 0;
+	var blackout = 0;
+	var turnsCounter, turnsTimer;
+	var attacking = false;
+	var attackingTimer = 0;
+	var combatAbilities = [];
+	var slots = [null, null, null, null, null, null, null, null, null, null, null, null, null, null];
+	var SCTboxes;
+	var SCTeffects;
+	var SCTlabels = [false, false, false];
+	var SCTanimation;
+	var SCTstates = [0, 0, 0];
+	var SCTdamage = [0, 0, 0];
+	var SCTelements = [0, 0, 0];
+	var SCTchanged = false;
+	var deadmarks;
+	var pvpframes;
+	var alive = [true, true, true];
+	var toggleAlive = false;
+	function counterTick() {
+		if (turns < 99) {
+			if (blackout) {
+				blackout--;
+				turns = 0;
+			} else {
+				turns++;
+			}
+		}
+		turnsCounter.innerHTML = turns;
+		for (i = 0; i < 14; i++) {
+			if (slots[i] !== null && slots[i].cooldown) {
+				slots[i].cooldown--;
+				if (slots[i].cooldown) {
+					slots[i].timers.set('html', slots[i].cooldown);
+				} else {
+					slots[i].icon.removeClass('oncooldown');
+				}
+			}
+		}
+		turnsTimer = setTimeout(function () {
+			counterTick();
+		},
+		400);
+	}
+	function counterStop() {
+		clearTimeout(turnsTimer);
+		turns = 0;
+	}
+	function counterReset() {
+		turns = 0;
+		restoreColor = true;
+		turnsCounter.addClass('flash');
+		setTimeout(function () {
+			turnsCounter.removeClass('flash');
+		},
+		100);
+	}
+	return {
+		init: function () {
+			turnsCounter = $('turns');
+			combatBackground = $('combat_bg').setStyle('opacity', 0);
+			actionbar = $('actionbar');
+			lootbar = $('lootbar');
+			combatBackgroundFx = new Fx.Tween(combatBackground, {
+				link: "cancel",
+				duration: 300
+			});
+			combatFrames = $$('#gameframe div.combat');
+			combatFramesName = $$('#gameframe div.combat div.name');
+			combatFrames.each(function (el, key) {
+				combatFramesFx[key] = new Fx.Tween(el, {
+					link: "cancel",
+					duration: 500
+				});
+			});
+			deadmarks = $$('#gameframe div.combat div.deadmark').setStyle('opacity', 0.5);
+			pvpframes = $$('#gameframe div.combat div.pvpframe');
+			combatFramesName.each(function (el, key) {
+				el.addEvent('click', function () {
+					if (alive[key]) {
+						selected = key;
+						combatFramesName.removeClass('selected');
+						this.addClass('selected');
+					}
+				});
+			});
+			$('closeCombat').addEvent('click', function () {
+				if (VANTHIA.eq.hasLoot()) {
+					VANTHIA.hud.confirm('Close without looting?', function () {
+						VANTHIA.ajax('combat::end');
+					});
+				} else {
+					VANTHIA.ajax('combat::end');
+				}
+			});
+			$('lootAll').addEvent('click', function () {
+				VANTHIA.ajax("combat::lootAll");
+			});
+			SCTboxes = $$('#gameframe div.combat div.SCTbox');
+			SCTeffects = $$('#gameframe div.combat div.dmgmark');
+			SCTboxes.each(function (el, key) {
+				SCTlabels[key] = el.getElements('span.SCT');
+			});
+			SCTanimation = new Fx.Elements(SCTboxes.concat(SCTeffects), {
+				link: 'cancel',
+				fps: 20,
+				duration: 1000,
+				onComplete: function () {
+					SCTboxes.setStyle('display', 'none');
+				}
+			});
+		},
+		inCombat: function () {
+			return inCombat;
+		},
+		setSCT: function (i, state, damage, element) {
+			SCTstates[i] = state;
+			SCTdamage[i] = damage;
+			SCTelements[i] = element;
+			SCTchanged = true;
+		},
+		SCT: function () {
+			var options = {};
+			var classes = '';
+			for (var i = 0; i < 3; i++) {
+				if (SCTstates[i] == 3) {
+					SCTlabels[i].each(function (el) {
+						el.innerHTML = 'Evade';
+					});
+					SCTboxes[i].className = "SCTbox evade";
+				} else if (SCTstates[i] == 2) {
+					SCTlabels[i].each(function (el) {
+						el.innerHTML = '*' + SCTdamage[i] + '*';
+					});
+					SCTboxes[i].className = "SCTbox crit";
+				} else if (SCTstates[i] == 1) {
+					SCTlabels[i].each(function (el) {
+						el.innerHTML = SCTdamage[i];
+					});
+					SCTboxes[i].className = "SCTbox";
+				}
+				if (SCTstates[i]) {
+					SCTboxes[i].setStyles({
+						'top': 143,
+						'display': 'block'
+					});
+					options[i + ''] = {
+						'top': [143, 130]
+					};
+					options[(i + 3) + ''] = {
+						'opacity': [1, 0]
+					};
+					SCTeffects[i].className = 'dmgmark el' + SCTelements[i];
+				}
+			}
+			SCTanimation.start(options);
+			SCTstates = [0, 0, 0];
+			SCTdamage = [0, 0, 0];
+			SCTelements = [0, 0, 0];
+		},
+		toggle: function (attempt) {
+			attempt = attempt || 0;
+			attempt++;
+			selected++;
+			if (selected == totalEnemies) {
+				selected = 0;
+			}
+			if (alive[selected]) {
+				combatFramesName.removeClass('selected');
+				combatFramesName[selected].addClass('selected');
+			} else if (attempt < 4) {
+				VANTHIA.combat.toggle(attempt);
+			}
+		},
+		preToggle: function () {
+			toggleAlive = true;
+		},
+		postToggle: function () {
+			if (toggleAlive) {
+				toggleAlive = false;
+				combatFramesName.removeClass('selected');
+				for (var i = 0; i < totalEnemies; i++) {
+					if (alive[i]) {
+						selected = i;
+						combatFramesName[selected].addClass('selected');
+						return;
+					}
+				}
+			}
+		},
+		markDead: function (id) {
+			if (alive[id]) {
+				deadmarks[id].setStyle('display', 'block');
+				alive[id] = false;
+			}
+		},
+		begin: function (data) {
+			var i;
+			for (i = 0; i < 14; i++) {
+				if (slots[i] !== null) {
+					if (slots[i].chain) {
+						slots[i].icon.addClass('blackout');
+						slots[i].available = false;
+					}
+				}
+			}
+			alive = [true, true, true];
+			deadmarks.setStyle('display', 'none');
+			attacking = false;
+			sendingRequest = false;
+			inCombat = true;
+			if (lockedIcon) {
+				lockedIcon.removeClass('locked');
+			}
+			VANTHIA.ajax.combatRate();
+			combatBackground.setStyle('display', 'block');
+			actionbar.setStyle('display', 'block');
+			combatBackgroundFx.start('opacity', 0, 0.25);
+			totalEnemies = data.length;
+			for (i = 0; i < totalEnemies; i++) {
+				var visual = data[i].visual;
+				if (visual == 'pvp') {
+					visual = data[i].race + data[i].gender + data[i].face;
+					combatFrames[i].setStyles({
+						'background-image': "url('" + V_external + "_av/" + visual + ".jpg')",
+						'background-position': '16px 39px'
+					});
+					pvpframes[i].setStyle('visibility', 'visible');
+				} else {
+					combatFrames[i].setStyles({
+						'background-image': "url('" + V_external + "_mobs/" + visual + ".jpg')",
+						'background-position': '6px 0'
+					});
+					pvpframes[i].setStyle('visibility', 'hidden');
+				}
+				combatFramesName[i].innerHTML = data[i].name;
+			}
+			selected = 0;
+			combatFramesName.removeClass('selected');
+			combatFramesName[0].addClass('selected');
+			switch (totalEnemies) {
+			case 1:
+				combatFrames[0].setStyle('left', 218);
+				break;
+			case 2:
+				combatFrames[0].setStyle('left', 125);
+				combatFrames[1].setStyle('left', 311);
+				break;
+			case 3:
+				combatFrames[0].setStyle('left', 32);
+				combatFrames[1].setStyle('left', 218);
+				combatFrames[2].setStyle('left', 404);
+				break;
+			}
+			setTimeout(function () {
+				combatFramesFx[0].start('top', -217, 0);
+			},
+			300);
+			if (data.length > 1) {
+				setTimeout(function () {
+					combatFramesFx[1].start('top', -217, 0);
+				},
+				500);
+			}
+			if (data.length > 2) {
+				setTimeout(function () {
+					combatFramesFx[2].start('top', -217, 0);
+				},
+				800);
+			}
+			counterTick();
+			VANTHIA.sound.goAlt();
+		},
+		ok: function (reset, action) {
+			action = action || false;
+			attacking = false;
+			sendingRequest = false;
+			if (lockedIcon) {
+				lockedIcon.removeClass('locked');
+			}
+			if (reset) {
+				counterReset();
+			}
+			if (SCTchanged) {
+				VANTHIA.combat.SCT();
+				SCTchanged = false;
+			}
+			if (action) {
+				for (i = 0; i < 14; i++) {
+					if (slots[i] !== null) {
+						if (slots[i].chain) {
+							if (slots[i].chain == action) {
+								slots[i].icon.removeClass('blackout');
+								slots[i].available = true;
+							} else {
+								slots[i].icon.addClass('blackout');
+								slots[i].available = false;
+							}
+						}
+					}
+				}
+			}
+		},
+		end: function () {
+			VANTHIA.ajax.normalRate();
+			actionbar.setStyle('display', 'none');
+			counterStop();
+			VANTHIA.sound.goMain();
+			if (!inCombat) {
+				return;
+			}
+			lootbar.setStyle('display', 'block');
+			for (i = 0; i < 14; i++) {
+				if (slots[i] !== null) {
+					slots[i].icon.removeClass('oncooldown');
+					slots[i].cooldown = 0;
+				}
+			}
+		},
+		close: function () {
+			inCombat = false;
+			lootbar.setStyle('display', 'none');
+			combatFrames.setStyle('top', -217);
+			combatBackground.setStyles({
+				'display': 'none',
+				'opacity': 0
+			});
+		},
+		use: function (id) {
+			if (slots[id] !== null) {
+				slots[id].icon.fireEvent('click');
+			}
+		},
+		insertIcon: function (icon, action, time, position, chain) {
+			chain = chain || false;
+			icon.setStyle('left', 43 + 31 * position);
+			icon.slot = position;
+			actionbar.appendChild(icon);
+			slots[position] = {
+				'icon': icon,
+				'cooldown': 0,
+				'action': action,
+				'timers': icon.getElements('span.shadow, span.label'),
+				'chain': chain,
+				'available': true
+			};
+			icon.addEvent('click', function () {
+				if (!sendingRequest) {
+					if (attacking) {
+						clearTimeout(attackingTimer);
+						attacking = false;
+						lockedIcon.removeClass('locked');
+					}
+					if (slots[this.slot].cooldown) {
+						VANTHIA.log("Ability on cooldown!", "error", true);
+						return false;
+					}
+					if (!slots[this.slot].available) {
+						VANTHIA.log("Ability can't be used yet!", "error", true);
+						return false;
+					}
+					if (!alive[selected]) {
+						return false;
+					}
+					var aTurns;
+					if (typeof(time) == "function") {
+						aTurns = time();
+					} else {
+						aTurns = time;
+					}
+					var difference = aTurns - turns;
+					if (difference > 2) {
+						attacking = true;
+						attackingTimer = setTimeout(function () {
+							sendingRequest = true;
+							VANTHIA.ajax('combat::ability', {
+								target: selected,
+								action: action
+							},
+							function () {
+								VANTHIA.combat.ok(false);
+							},
+							800);
+						},
+						(difference - 2) * 400);
+					} else {
+						var extraTime = difference * 400;
+						if (extraTime < 0) {
+							extraTime = 0;
+						}
+						sendingRequest = true;
+						VANTHIA.ajax('combat::ability', {
+							target: selected,
+							action: action
+						},
+						function () {
+							VANTHIA.combat.ok(false);
+						},
+						extraTime);
+					}
+					this.addClass('locked');
+					lockedIcon = this;
+				}
+			});
+		},
+		removeIcon: function (position) {
+			slots[position].icon.dispose();
+			slots[position] = null;
+		},
+		cd: function (action, value) {
+			var i;
+			for (i = 0; i < 14; i++) {
+				if (slots[i] !== null && slots[i].action == action) {
+					slots[i].icon.addClass('oncooldown');
+					slots[i].timers.set('html', value);
+					slots[i].cooldown = value;
+				}
+			}
+		},
+		blackout: function (value) {
+			blackout = 20;
+			var i;
+			for (i = 0; i < 14; i++) {
+				if (slots[i] !== null && slots[i].cooldown < value) {
+					slots[i].icon.addClass('oncooldown');
+					slots[i].timers.set('html', value);
+					slots[i].cooldown = value;
+				}
+			}
+		},
+		duelSync: function (name) {
+			VANTHIA.hud.confirm(name + " has requested a duel, do you accept?", function () {
+				VANTHIA.hud.infoBox("Waiting for the other player...");
+				VANTHIA.ajax("combat::accept", {
+					target: name
+				},
+				$empty, 4000);
+			},
+			function () {
+				VANTHIA.ajax("combat::reject", {
+					target: name
+				});
+			});
+		},
+		duelReject: function (name) {
+			VANTHIA.ajax.normalRate();
+			VANTHIA.hud.hideBox();
+			VANTHIA.log(name + " has rejected your duel.", "server");
+		}
+	};
+} ();

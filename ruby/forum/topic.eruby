@@ -1,0 +1,36 @@
+<%
+	ERuby.import('init.txt')
+
+	topic_row = $db.query("SELECT * FROM forum_topics WHERE id=#{$cgi['id']}").fetch_hash
+	forum_row = $db.query("SELECT * FROM forum_forums WHERE id=#{topic_row['forum_id']}").fetch_hash
+
+	$navigation.add(forum_row['name'], "forum.eruby?id=#{forum_row['id']}")
+	$navigation.add(topic_row['title'], "")
+
+	ERuby.import('head.txt')
+%>
+
+<a href="reply.eruby?topic=<%=$cgi['id']%>">Reply to this topic</a><br>
+<br>
+
+<table cellpadding="5" cellspacing="0" border="1" width="100%">
+<%
+	result = $db.query("SELECT * FROM forum_posts WHERE topic_id=#{$cgi['id']} ORDER BY date_create ASC")
+	result.each_hash do |row|
+%>
+	<tr>
+		<td>
+			<i><%=Time.at(row['date_create'].to_i).strftime('Posted at %H:%M on %B %d')%>:</i><br>
+			<br>
+			<%=CGI.escapeHTML(row['message']).gsub(/\n/,"<br>\n")%>
+		</td>
+	</tr>
+<% end %>
+</table>
+
+<br>
+<a href="reply.eruby?topic=<%=$cgi['id']%>">Reply to this topic</a><br>
+
+<%
+	ERuby.import('foot.txt')
+%>

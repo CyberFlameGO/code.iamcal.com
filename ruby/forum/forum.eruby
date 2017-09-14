@@ -1,0 +1,45 @@
+<%
+	ERuby.import('init.txt')
+
+	forum_row = $db.query("SELECT * FROM forum_forums WHERE id=#{$cgi['id']}").fetch_hash
+
+	$navigation.add(forum_row['name'], "forum")
+
+	ERuby.import('head.txt')
+%>
+
+<a href="newtopic.eruby?forum=<%=$cgi['id']%>">Start a new topic</a><br>
+<br>
+
+<table cellpadding="5" cellspacing="0" border="1" width="100%">
+	<tr>
+		<td width="50%"><b>Topic</b></td>
+		<td><b>Replies</b></td>
+		<td><b>Last Reply</b></td>
+	</tr>
+<%
+	result = $db.query("SELECT * FROM forum_topics WHERE forum_id=#{$cgi['id']} ORDER BY date_modified DESC")
+	result.each_hash do |row|
+		replies = $db.query("SELECT COUNT(*) AS c FROM forum_posts WHERE topic_id=#{row['id']}").fetch_hash['c'].to_i - 1
+%>
+	<tr>
+		<td><b><a href="topic.eruby?id=<%=row['id']%>"><%=row['title']%></a></b><br></td>
+		<td><%=replies%></td>
+<% if replies == 0 %>
+		<td>none</td>
+<%
+	else
+		subrow = $db.query("SELECT * FROM forum_posts WHERE topic_id=#{row['id']} ORDER BY date_create DESC LIMIT 1").fetch_hash
+%>
+		<td><%=Time.at(subrow['date_create'].to_i).strftime('Posted at %H:%M on %B %d')%></td>
+<% end %>
+	</tr>
+<% end %>
+</table>
+
+<br>
+<a href="newtopic.eruby?forum=<%=$cgi['id']%>">Start a new topic</a><br>
+
+<%
+	ERuby.import('foot.txt')
+%>
