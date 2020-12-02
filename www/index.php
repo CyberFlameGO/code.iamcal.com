@@ -17,7 +17,7 @@
 		$times = array();
 		foreach ($files as $file){
 			$stat = stat($file);
-			$times[$file] = $stat[mtime];
+			$times[$file] = $stat['mtime'];
 		}
 
 		$last_update = max($times);
